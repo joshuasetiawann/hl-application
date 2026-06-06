@@ -1,0 +1,109 @@
+// HL Sales & Receivables Management App - data model
+// Currency: IDR only. No tax/PPN. Cash basis. Money stored as integers/decimals (Rupiah)
+// using Float here for SQLite portability but ALL money math is performed with decimal.js
+// in the application layer (see src/lib/calc.ts) to remain decimal-safe.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Single application user (no public registration).
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Customer {
+  id            String   @id @default(cuid())
+  nama          String
+  // Ordered cascading discount steps, stored as JSON arrays of numbers (0..100).
+  lmDiscounts   String   @default("[]") // JSON: number[]
+  brDiscounts   String   @default("[]") // JSON: number[]
+  bonusThreshold Float   @default(0)    // Rupiah, >= 0. 0 = bonus disabled.
+  deletedAt     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  transactions  Transaction[]
+
+  @@index([deletedAt])
+  @@index([nama])
+}
+
+// ProductType: "LM" | "BR" (SQLite has no native enums; constrained in app layer via Zod).
+model Product {
+  id         String      @id @default(cuid())
+  nama       String
+  hargaModal Float       @default(0) // cost price (internal, for profit only)
+  hargaBase  Float       @default(0) // list/base price before customer discount
+  tipe       String      // "LM" | "BR"
+  deletedAt  DateTime?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  lines      TransactionLine[]
+
+  @@index([deletedAt])
+  @@index([tipe])
+}
+
+// TransactionStatus: "PIUTANG" | "LUNAS" (constrained in app layer via Zod).
+model Transaction {
+  id                String            @id @default(cuid())
+  tanggal           DateTime          @default(now())
+  nomorBon          String            @unique
+  customerId        String
+  customer          Customer          @relation(fields: [customerId], references: [id])
+  ongkir            Float             @default(0)
+  deskripsi         String            @default("")
+  isBonus           Boolean           @default(false)
+  bonusUnitsGranted Int               @default(0) // bonuses consumed/granted by this bonus bon
+  status            String            @default("PIUTANG") // "PIUTANG" | "LUNAS"
+  paymentDate       DateTime?
+  // Persisted snapshots of computed totals (decimal-safe values computed in app layer).
+  omzetTotal        Float             @default(0)
+  profitTotal       Float             @default(0)
+  amountOwed        Float             @default(0)
+  deletedAt         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  lines             TransactionLine[]
+
+  @@index([customerId])
+  @@index([tanggal])
+  @@index([status])
+  @@index([isBonus])
+  @@index([deletedAt])
+}
+
+model TransactionLine {
+  id                        String      @id @default(cuid())
+  transactionId             String
+  transaction               Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  productId                 String
+  product                   Product     @relation(fields: [productId], references: [id])
+  quantity                  Int
+  // Snapshots taken at transaction time so history never breaks if master data changes.
+  productNameSnapshot       String
+  productTypeSnapshot       String      // "LM" | "BR"
+  hargaBaseSnapshot         Float
+  hargaModalSnapshot        Float
+  discountStepsSnapshot     String      // JSON: number[]
+  discountedUnitPriceSnapshot Float
+  lineOmzetSnapshot         Float
+  lineProfitSnapshot        Float
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
+
+  @@index([transactionId])
+  @@index([productId])
+}

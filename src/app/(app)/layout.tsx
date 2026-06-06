@@ -1,0 +1,23 @@
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import Sidebar from "@/components/Sidebar";
+
+export const dynamic = "force-dynamic";
+
+export default async function AppLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  return (
+    <div className="min-h-screen">
+      <Sidebar username={session.username} />
+      <main className="lg:pl-60">
+        <div className="mx-auto max-w-7xl p-4 sm:p-6">{children}</div>
+      </main>
+    </div>
+  );
+}
