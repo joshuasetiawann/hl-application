@@ -58,6 +58,16 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      {/* Quick actions */}
+      <div className="flex flex-wrap gap-2">
+        <Link href="/customers/new" className="btn-secondary">+ Pelanggan</Link>
+        <Link href="/products/new" className="btn-secondary">+ Produk</Link>
+        <Link href="/transactions/new" className="btn-secondary">+ Bon</Link>
+        <Link href="/reports" className="btn-secondary">Rekap</Link>
+        <Link href="/transactions?status=PIUTANG" className="btn-secondary">Daftar Piutang</Link>
+        <a href="/api/pdf/piutang" target="_blank" className="btn-secondary">PDF Piutang</a>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Total Piutang Outstanding"
@@ -82,6 +92,14 @@ export default async function DashboardPage() {
           accent="blue"
           hint="Hanya transaksi Lunas"
         />
+      </div>
+
+      {/* LM vs BR summary (this month, recognized) */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Omzet LM (bulan ini)" value={formatIDR(monthRecap.omzetLM)} />
+        <StatCard label="Omzet BR (bulan ini)" value={formatIDR(monthRecap.omzetBR)} />
+        <StatCard label="Laba HL LM" value={formatIDR(monthRecap.profitLM)} />
+        <StatCard label="Laba HL BR" value={formatIDR(monthRecap.profitBR)} />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

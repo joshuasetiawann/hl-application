@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { Card, StatCard } from "@/components/ui";
 import MonthYearSelector from "@/components/MonthYearSelector";
+import FilterSelect from "@/components/FilterSelect";
 import { recapOverall, recapPerCustomer } from "@/lib/services/report";
 import { formatIDR } from "@/lib/format";
 
@@ -9,13 +10,14 @@ export const dynamic = "force-dynamic";
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: { year?: string; month?: string };
+  searchParams: { year?: string; month?: string; customerId?: string };
 }) {
   const now = new Date();
   const year = Number(searchParams.year) || now.getFullYear();
   const month = Number(searchParams.month) || 0; // 0 = whole year
+  const customerId = searchParams.customerId || "";
 
-  const filters = { year, month: month || undefined };
+  const filters = { year, month: month || undefined, customerId: customerId || undefined };
   const overall = await recapOverall(filters);
   const perCustomer = await recapPerCustomer(filters);
 
@@ -27,7 +29,13 @@ export default async function ReportsPage({
   txYears.forEach((t) => yearSet.add(new Date(t.tanggal).getFullYear()));
   const years = Array.from(yearSet).sort((a, b) => b - a);
 
-  const pdfBase = `year=${year}${month ? `&month=${month}` : ""}`;
+  const customers = await prisma.customer.findMany({
+    where: { deletedAt: null },
+    select: { id: true, nama: true },
+    orderBy: { nama: "asc" },
+  });
+
+  const pdfBase = `year=${year}${month ? `&month=${month}` : ""}${customerId ? `&customerId=${customerId}` : ""}`;
 
   return (
     <div className="space-y-6">
@@ -35,6 +43,12 @@ export default async function ReportsPage({
         <h1 className="text-2xl font-bold">Rekap / Laporan</h1>
         <div className="flex flex-wrap items-center gap-2">
           <MonthYearSelector year={year} month={month} years={years} includeAllMonths />
+          <FilterSelect
+            paramKey="customerId"
+            value={customerId}
+            allLabel="Semua Pelanggan"
+            options={customers.map((c) => ({ value: c.id, label: c.nama }))}
+          />
           <a href={`/api/pdf/recap?type=overall&${pdfBase}`} target="_blank" className="btn-secondary">
             PDF Rekap Keseluruhan
           </a>
