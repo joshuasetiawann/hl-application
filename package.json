@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "build:next": "next build",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
@@ -13,6 +14,7 @@
     "prisma:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "screenshots": "node scripts/screenshot.cjs",
     "setup": "prisma migrate deploy && prisma generate && tsx prisma/seed.ts"
   },
   "prisma": {
@@ -40,6 +42,7 @@
     "eslint-config-next": "^14.2.35",
     "postcss": "8.4.47",
     "prisma": "5.22.0",
+    "puppeteer": "^23.11.1",
     "tailwindcss": "3.4.14",
     "tsx": "4.19.2",
     "typescript": "5.6.3",

@@ -36,8 +36,8 @@ export default function LoginForm() {
   }
 
   return (
-    <Card className="p-6">
-      <form onSubmit={onSubmit} className="space-y-4">
+    <Card className="p-7">
+      <form onSubmit={onSubmit} className="space-y-5">
         <div>
           <label className="label" htmlFor="username">
             Username
@@ -45,6 +45,7 @@ export default function LoginForm() {
           <input
             id="username"
             className="input"
+            placeholder="Masukkan username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
@@ -59,6 +60,7 @@ export default function LoginForm() {
             id="password"
             type="password"
             className="input"
+            placeholder="Masukkan password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
@@ -66,14 +68,19 @@ export default function LoginForm() {
           />
         </div>
         {error && (
-          <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
+          <div className="rounded-xl bg-red-50 px-4 py-3 text-lg font-semibold text-red-700">
+            ⚠ {error}
           </div>
         )}
-        <button type="submit" className="btn-primary w-full" disabled={loading}>
-          {loading ? "Memproses..." : "Login"}
+        <button type="submit" className="btn-primary btn-lg btn-block" disabled={loading}>
+          {loading ? "Memproses..." : "Masuk"}
         </button>
       </form>
+      <div className="mt-5 rounded-xl bg-slate-50 px-4 py-3 text-base text-slate-600">
+        <div className="font-bold text-slate-700">Akun demo:</div>
+        <div>Username: <span className="font-mono font-bold">admin</span></div>
+        <div>Password: <span className="font-mono font-bold">admin123</span></div>
+      </div>
     </Card>
   );
 }

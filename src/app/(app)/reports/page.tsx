@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { Card, StatCard } from "@/components/ui";
 import MonthYearSelector from "@/components/MonthYearSelector";
 import FilterSelect from "@/components/FilterSelect";
+import PdfButton from "@/components/PdfButton";
 import { recapOverall, recapPerCustomer } from "@/lib/services/report";
 import { formatIDR } from "@/lib/format";
 
@@ -49,12 +50,8 @@ export default async function ReportsPage({
             allLabel="Semua Pelanggan"
             options={customers.map((c) => ({ value: c.id, label: c.nama }))}
           />
-          <a href={`/api/pdf/recap?type=overall&${pdfBase}`} target="_blank" className="btn-secondary">
-            PDF Rekap Keseluruhan
-          </a>
-          <a href={`/api/pdf/recap?type=customer&${pdfBase}`} target="_blank" className="btn-secondary">
-            PDF Rekap Pelanggan
-          </a>
+          <PdfButton url={`/api/pdf/recap?type=overall&${pdfBase}`} label="PDF Keseluruhan" />
+          <PdfButton url={`/api/pdf/recap?type=customer&${pdfBase}`} label="PDF Per Pelanggan" />
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { Card, StatusBadge, TypeBadge } from "@/components/ui";
 import SettleButton from "@/components/SettleButton";
 import DeleteButton from "@/components/DeleteButton";
+import PdfButton from "@/components/PdfButton";
 import { parseDiscountArray } from "@/lib/serialize";
 import { formatIDR, formatDate, formatDiscountSteps } from "@/lib/format";
 
@@ -20,85 +21,119 @@ export default async function TransactionDetailPage({
   });
   if (!txn || txn.deletedAt) notFound();
 
+  const isPiutang = !txn.isBonus && txn.status === "PIUTANG";
+  const isLunas = !txn.isBonus && txn.status === "LUNAS";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/transactions" className="text-sm text-brand-600">
-            ← Transaksi
+          <Link href="/transactions" className="text-lg font-semibold text-brand-700 hover:underline">
+            ← Kembali ke Daftar Bon
           </Link>
-          <h1 className="flex items-center gap-3 text-2xl font-bold">
+          <h1 className="mt-1 flex flex-wrap items-center gap-3 text-3xl font-extrabold">
             Bon {txn.nomorBon}
             <StatusBadge status={txn.status} isBonus={txn.isBonus} />
           </h1>
-          <p className="text-sm text-slate-500">
-            {formatDate(txn.tanggal)} •{" "}
-            <Link href={`/customers/${txn.customerId}`} className="text-brand-600 hover:underline">
-              {txn.customer.nama}
-            </Link>
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {!txn.isBonus && txn.status === "PIUTANG" && (
+          <PdfButton url={`/api/pdf/bon/${txn.id}`} label="Download PDF" />
+          {isPiutang && (
             <SettleButton
               url={`/api/transactions/${txn.id}/settle`}
-              label="Lunas"
-              successMessage="Bon berhasil dilunasi"
+              label="Tandai Lunas"
+              description={`Tandai bon ${txn.nomorBon} sebagai sudah lunas.`}
+              successMessage="Bon berhasil ditandai Lunas"
             />
           )}
           <Link href={`/transactions/${txn.id}/edit`} className="btn-secondary">
-            Edit
+            ✏️ Edit
           </Link>
           <DeleteButton
             url={`/api/transactions/${txn.id}`}
-            confirmText={`Hapus bon ${txn.nomorBon}? (soft-delete)`}
+            title="Hapus Bon?"
+            confirmText={`Bon ${txn.nomorBon} akan dihapus dari daftar. Tindakan ini tidak menambah/mengurangi data lain.`}
             redirectTo="/transactions"
           />
         </div>
       </div>
 
+      {/* Payment status banner */}
+      {isPiutang && (
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-amber-300 bg-amber-50 p-5">
+          <div className="text-xl font-bold text-amber-800">⏳ Bon ini belum lunas</div>
+          <SettleButton
+            url={`/api/transactions/${txn.id}/settle`}
+            label="Tandai Sudah Lunas"
+            description={`Tandai bon ${txn.nomorBon} sebagai sudah lunas.`}
+            successMessage="Bon berhasil ditandai Lunas"
+          />
+        </Card>
+      )}
+      {isLunas && (
+        <Card className="border-emerald-300 bg-emerald-50 p-5">
+          <div className="text-xl font-bold text-emerald-800">
+            ✓ Bon sudah lunas pada {formatDate(txn.paymentDate)}
+          </div>
+        </Card>
+      )}
       {txn.isBonus && (
-        <div className="rounded-md bg-purple-50 px-4 py-3 text-sm text-purple-800">
-          🎁 Ini adalah <b>Bonus Bon</b>. Produk gratis — 0 omzet, 0 tagihan, 0 laba.
-          Bonus diberikan: <b>{txn.bonusUnitsGranted}</b>.
-        </div>
+        <Card className="border-purple-300 bg-purple-50 p-5">
+          <div className="text-xl font-bold text-purple-800">
+            🎁 Bon Bonus — produk gratis, {txn.bonusUnitsGranted} bonus dipakai
+          </div>
+          <p className="mt-1 text-lg text-purple-700">
+            Tidak dihitung sebagai omzet, piutang, atau laba.
+          </p>
+        </Card>
       )}
 
+      {/* Info cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <InfoCard label="Pelanggan">
+          <Link href={`/customers/${txn.customerId}`} className="text-brand-700 hover:underline">
+            {txn.customer.nama}
+          </Link>
+        </InfoCard>
+        <InfoCard label="Tanggal">{formatDate(txn.tanggal)}</InfoCard>
+        <InfoCard label="Tanggal Pelunasan">
+          {txn.paymentDate ? formatDate(txn.paymentDate) : "—"}
+        </InfoCard>
+        <InfoCard label="Deskripsi">{txn.deskripsi || "—"}</InfoCard>
+      </div>
+
+      {/* Line table */}
       <Card>
-        <div className="border-b border-slate-200 px-4 py-3">
-          <h2 className="font-semibold">Detail Baris</h2>
+        <div className="border-b-2 border-slate-200 px-5 py-4">
+          <h2 className="text-xl font-bold">Detail Produk</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-200">
+              <tr className="border-b-2 border-slate-200">
                 <th className="table-th">Produk</th>
                 <th className="table-th">Tipe</th>
                 <th className="table-th">Diskon</th>
-                <th className="table-th text-right">Harga Base</th>
                 <th className="table-th text-right">Harga/unit</th>
                 <th className="table-th text-right">Qty</th>
                 <th className="table-th text-right">Omzet</th>
-                <th className="table-th text-right">Laba HL</th>
               </tr>
             </thead>
             <tbody>
               {txn.lines.map((l) => (
-                <tr key={l.id} className="border-b border-slate-50">
-                  <td className="table-td font-medium">{l.productNameSnapshot}</td>
+                <tr key={l.id} className="border-b border-slate-100">
+                  <td className="table-td font-semibold">{l.productNameSnapshot}</td>
                   <td className="table-td">
                     <TypeBadge tipe={l.productTypeSnapshot} />
                   </td>
-                  <td className="table-td text-xs text-slate-500">
+                  <td className="table-td text-slate-500">
                     {formatDiscountSteps(parseDiscountArray(l.discountStepsSnapshot))}
                   </td>
-                  <td className="table-td text-right">{formatIDR(l.hargaBaseSnapshot)}</td>
-                  <td className="table-td text-right">
-                    {formatIDR(l.discountedUnitPriceSnapshot)}
-                  </td>
+                  <td className="table-td text-right">{formatIDR(l.discountedUnitPriceSnapshot)}</td>
                   <td className="table-td text-right">{l.quantity}</td>
-                  <td className="table-td text-right">{formatIDR(l.lineOmzetSnapshot)}</td>
-                  <td className="table-td text-right">{formatIDR(l.lineProfitSnapshot)}</td>
+                  <td className="table-td text-right font-semibold">
+                    {formatIDR(txn.isBonus ? 0 : l.lineOmzetSnapshot)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -106,54 +141,41 @@ export default async function TransactionDetailPage({
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="p-4">
-          <h3 className="mb-3 font-semibold">Ringkasan</h3>
-          <dl className="space-y-2 text-sm">
-            <Row label="Omzet (tanpa ongkir)" value={formatIDR(txn.isBonus ? 0 : txn.omzetTotal)} />
-            <Row label="Ongkir" value={formatIDR(txn.ongkir)} />
-            <Row
-              label="Total Tagihan"
-              value={formatIDR(txn.isBonus ? 0 : txn.amountOwed)}
-              bold
-            />
-            <Row label="Laba HL" value={formatIDR(txn.isBonus ? 0 : txn.profitTotal)} />
-          </dl>
-        </Card>
-        <Card className="p-4">
-          <h3 className="mb-3 font-semibold">Status Pembayaran</h3>
-          <dl className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-slate-500">Status</dt>
-              <dd>
-                <StatusBadge status={txn.status} isBonus={txn.isBonus} />
-              </dd>
+      {/* Summary */}
+      <Card className="p-6">
+        <h3 className="mb-4 text-xl font-bold">Ringkasan</h3>
+        <dl className="grid grid-cols-1 gap-3 text-lg sm:grid-cols-2">
+          <Row label="Omzet (tanpa ongkir)" value={formatIDR(txn.isBonus ? 0 : txn.omzetTotal)} />
+          <Row label="Ongkir" value={formatIDR(txn.ongkir)} />
+          <Row label="Laba HL" value={formatIDR(txn.isBonus ? 0 : txn.profitTotal)} />
+          <div className="rounded-xl bg-brand-600 px-4 py-3 text-white sm:col-span-2">
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-semibold">Total Tagihan</span>
+              <span className="text-3xl font-extrabold">
+                {formatIDR(txn.isBonus ? 0 : txn.amountOwed)}
+              </span>
             </div>
-            <Row
-              label="Tanggal Pelunasan"
-              value={txn.paymentDate ? formatDate(txn.paymentDate) : "—"}
-            />
-            {txn.deskripsi && <Row label="Deskripsi" value={txn.deskripsi} />}
-          </dl>
-        </Card>
-      </div>
+          </div>
+        </dl>
+      </Card>
     </div>
   );
 }
 
-function Row({
-  label,
-  value,
-  bold,
-}: {
-  label: string;
-  value: string;
-  bold?: boolean;
-}) {
+function InfoCard({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex justify-between">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className={bold ? "font-bold" : "font-medium"}>{value}</dd>
+    <Card className="p-4">
+      <div className="text-base font-semibold text-slate-500">{label}</div>
+      <div className="mt-1 text-lg font-bold text-slate-900">{children}</div>
+    </Card>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between border-b border-slate-100 py-2">
+      <dt className="text-slate-600">{label}</dt>
+      <dd className="font-bold text-slate-900">{value}</dd>
     </div>
   );
 }
