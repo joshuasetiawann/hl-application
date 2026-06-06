@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, ErrorText, TypeBadge } from "@/components/ui";
+import { Card, TypeBadge } from "@/components/ui";
+import { useToast } from "@/components/Toast";
 import { apiGet, apiSend } from "@/lib/client";
 import {
   applyCascadingDiscount,
@@ -46,6 +47,8 @@ export interface TransactionFormInitial {
   lines: LineState[];
 }
 
+const STEPS = ["Info Bon", "Pilih Produk", "Ongkir & Bonus", "Ringkasan"];
+
 export default function TransactionForm({
   customers,
   products,
@@ -60,8 +63,10 @@ export default function TransactionForm({
   defaultBonus?: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const isEdit = !!initial?.id;
 
+  const [step, setStep] = useState(1);
   const [tanggal, setTanggal] = useState(
     initial?.tanggal ?? new Date().toISOString().slice(0, 10)
   );
@@ -87,12 +92,8 @@ export default function TransactionForm({
   const [bonusAvailable, setBonusAvailable] = useState<number | null>(null);
 
   const customer = customers.find((c) => c.id === customerId);
-  const productMap = useMemo(
-    () => new Map(products.map((p) => [p.id, p])),
-    [products]
-  );
+  const productMap = useMemo(() => new Map(products.map((p) => [p.id, p])), [products]);
 
-  // Fetch bonus eligibility when relevant.
   useEffect(() => {
     let active = true;
     if (!customerId) {
@@ -116,11 +117,15 @@ export default function TransactionForm({
   function lineComputed(line: LineState) {
     const product = productMap.get(line.productId);
     if (!product || !customer) {
-      return { discountedUnitPrice: 0, lineOmzet: 0, tipe: null as ProductType | null, steps: [] as number[] };
+      return {
+        discountedUnitPrice: 0,
+        lineOmzet: 0,
+        tipe: null as ProductType | null,
+        steps: [] as number[],
+      };
     }
     const steps = discountSetForType(customer, product.tipe);
     const dup = applyCascadingDiscount(product.hargaBase, steps);
-    const omzet = isBonus ? 0 : dup.times(line.quantity);
     return {
       discountedUnitPrice: toMoneyNumber(dup),
       lineOmzet: isBonus ? 0 : toMoneyNumber(dup.times(line.quantity)),
@@ -129,10 +134,8 @@ export default function TransactionForm({
     };
   }
 
-  // Live transaction totals.
   const totals = useMemo(() => {
-    if (!customer)
-      return { omzet: 0, owed: 0, ongkirNum: 0 };
+    if (!customer) return { omzet: 0, owed: 0, ongkirNum: 0, laba: 0 };
     const calcLines = lines
       .filter((l) => l.productId)
       .map((l) => {
@@ -152,6 +155,7 @@ export default function TransactionForm({
     return {
       omzet: toMoneyNumber(result.omzetTotal),
       owed: toMoneyNumber(result.amountOwed),
+      laba: toMoneyNumber(result.profitTotal),
       ongkirNum: isBonus ? 0 : Number(ongkir) || 0,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -167,24 +171,48 @@ export default function TransactionForm({
     setLines(lines.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-
-    if (!customerId) return setError("Pelanggan wajib dipilih");
-    const validLines = lines.filter((l) => l.productId && l.quantity >= 1);
-    if (validLines.length === 0)
-      return setError("Minimal 1 baris produk dengan qty >= 1");
-    if (!nomorBon.trim()) return setError("Nomor Bon wajib diisi");
-    if (isBonus) {
-      if (bonusUnitsGranted < 1)
-        return setError("Bonus bon harus memberikan minimal 1 bonus");
-      if (bonusAvailable != null && bonusUnitsGranted > bonusAvailable)
-        return setError(
-          `Bonus tersedia hanya ${bonusAvailable}, tidak bisa memberi ${bonusUnitsGranted}`
-        );
+  function validateStep(s: number): string | null {
+    if (s === 1) {
+      if (!tanggal) return "Tanggal wajib diisi";
+      if (!nomorBon.trim()) return "Nomor Bon wajib diisi";
+      if (!customerId) return "Pelanggan wajib dipilih";
     }
+    if (s === 2) {
+      const valid = lines.filter((l) => l.productId && l.quantity >= 1);
+      if (valid.length === 0) return "Minimal 1 produk dengan jumlah minimal 1";
+    }
+    if (s === 3 && isBonus) {
+      if (bonusUnitsGranted < 1) return "Jumlah bonus minimal 1";
+      if (bonusAvailable != null && bonusUnitsGranted > bonusAvailable)
+        return `Bonus tersedia hanya ${bonusAvailable}`;
+    }
+    return null;
+  }
 
+  function next() {
+    const err = validateStep(step);
+    if (err) {
+      setError(err);
+      return;
+    }
+    setError(null);
+    setStep((s) => Math.min(4, s + 1));
+  }
+  function back() {
+    setError(null);
+    setStep((s) => Math.max(1, s - 1));
+  }
+
+  async function onSave() {
+    for (let s = 1; s <= 3; s++) {
+      const err = validateStep(s);
+      if (err) {
+        setError(err);
+        setStep(s);
+        return;
+      }
+    }
+    const validLines = lines.filter((l) => l.productId && l.quantity >= 1);
     const body = {
       tanggal,
       nomorBon: nomorBon.trim(),
@@ -193,246 +221,272 @@ export default function TransactionForm({
       deskripsi,
       isBonus,
       bonusUnitsGranted: isBonus ? bonusUnitsGranted : 0,
-      lines: validLines.map((l) => ({
-        productId: l.productId,
-        quantity: Number(l.quantity),
-      })),
+      lines: validLines.map((l) => ({ productId: l.productId, quantity: Number(l.quantity) })),
     };
-
     setLoading(true);
     try {
       let res: { id: string };
-      if (isEdit) {
-        res = await apiSend(`/api/transactions/${initial!.id}`, "PUT", body);
-      } else {
-        res = await apiSend("/api/transactions", "POST", body);
-      }
+      if (isEdit) res = await apiSend(`/api/transactions/${initial!.id}`, "PUT", body);
+      else res = await apiSend("/api/transactions", "POST", body);
+      toast.show(isEdit ? "Bon berhasil diperbarui" : "Bon berhasil disimpan", "success");
       router.push(`/transactions/${res.id}`);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Gagal menyimpan");
+      const msg = e instanceof Error ? e.message : "Gagal menyimpan";
+      setError(msg);
+      toast.show(msg, "error");
     } finally {
       setLoading(false);
     }
   }
 
+  const customerName = customer?.nama ?? "-";
+
   return (
-    <form onSubmit={onSubmit} className="space-y-6">
-      <Card className="p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label">Tanggal *</label>
-            <input
-              type="date"
-              className="input"
-              value={tanggal}
-              onChange={(e) => setTanggal(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="label">Nomor Bon *</label>
-            <input
-              className="input"
-              value={nomorBon}
-              onChange={(e) => setNomorBon(e.target.value)}
-              placeholder="Harus unik"
-              required
-            />
-          </div>
-          <div>
-            <label className="label">Pelanggan *</label>
-            <select
-              className="input"
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              required
-            >
-              <option value="">— Pilih pelanggan —</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nama}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">Deskripsi</label>
-            <input
-              className="input"
-              value={deskripsi}
-              onChange={(e) => setDeskripsi(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 rounded-md border border-purple-200 bg-purple-50 p-3">
-          <label className="flex items-center gap-2 text-sm font-medium text-purple-800">
-            <input
-              type="checkbox"
-              checked={isBonus}
-              onChange={(e) => setIsBonus(e.target.checked)}
-            />
-            Tandai sebagai Bonus Bon (produk gratis, 0 omzet, 0 piutang)
-          </label>
-          {isBonus && (
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <div>
-                <label className="label">Jumlah Bonus Diberikan</label>
-                <input
-                  type="number"
-                  min={1}
-                  className="input w-32"
-                  value={bonusUnitsGranted}
-                  onChange={(e) => setBonusUnitsGranted(Number(e.target.value))}
-                />
-              </div>
-              <div className="text-sm text-purple-700">
-                {bonusAvailable == null
-                  ? "Memuat bonus tersedia..."
-                  : `Bonus tersedia: ${bonusAvailable}`}
-              </div>
-            </div>
-          )}
-        </div>
-      </Card>
-
-      <Card className="p-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold">Baris Produk</h2>
-          <button type="button" className="btn-secondary" onClick={addLine}>
-            + Tambah Baris
-          </button>
-        </div>
-
-        {!customer && (
-          <p className="mb-3 text-sm text-amber-600">
-            Pilih pelanggan dulu untuk melihat harga setelah diskon.
-          </p>
-        )}
-
-        <div className="space-y-3">
-          {lines.map((line, i) => {
-            const c = lineComputed(line);
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
+      <div className="space-y-6">
+        {/* Stepper */}
+        <ol className="flex flex-wrap items-center gap-2">
+          {STEPS.map((label, i) => {
+            const n = i + 1;
+            const active = n === step;
+            const done = n < step;
             return (
-              <div
-                key={i}
-                className="grid grid-cols-12 items-end gap-2 rounded-md border border-slate-200 p-3"
-              >
-                <div className="col-span-12 sm:col-span-5">
-                  <label className="label">Produk</label>
-                  <select
-                    className="input"
-                    value={line.productId}
-                    onChange={(e) => updateLine(i, { productId: e.target.value })}
+              <li key={label} className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => n < step && setStep(n)}
+                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-base font-bold ${
+                    active
+                      ? "bg-brand-600 text-white"
+                      : done
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  <span
+                    className={`flex h-7 w-7 items-center justify-center rounded-full text-sm ${
+                      active ? "bg-white/25" : done ? "bg-emerald-200" : "bg-slate-200"
+                    }`}
                   >
-                    <option value="">— Pilih produk —</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.nama} ({p.tipe})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-4 sm:col-span-2">
-                  <label className="label">Qty</label>
-                  <input
-                    type="number"
-                    min={1}
-                    className="input"
-                    value={line.quantity}
-                    onChange={(e) =>
-                      updateLine(i, { quantity: Math.max(1, Number(e.target.value)) })
-                    }
-                  />
-                </div>
-                <div className="col-span-8 sm:col-span-2">
-                  <label className="label">Harga / unit</label>
-                  <div className="flex items-center gap-2 py-2 text-sm">
-                    {c.tipe && <TypeBadge tipe={c.tipe} />}
-                    <span>{formatIDR(c.discountedUnitPrice)}</span>
-                  </div>
-                </div>
-                <div className="col-span-8 sm:col-span-2">
-                  <label className="label">Omzet baris</label>
-                  <div className="py-2 text-sm font-medium">
-                    {formatIDR(c.lineOmzet)}
-                  </div>
-                </div>
-                <div className="col-span-4 sm:col-span-1 flex justify-end">
-                  <button
-                    type="button"
-                    className="btn-danger py-1"
-                    onClick={() => removeLine(i)}
-                    disabled={lines.length === 1}
-                  >
-                    ✕
-                  </button>
-                </div>
-                {c.tipe && c.steps.length > 0 && (
-                  <div className="col-span-12 text-xs text-slate-400">
-                    Diskon {c.tipe}: {c.steps.map((s) => `${s}%`).join(" → ")}
-                  </div>
-                )}
-              </div>
+                    {done ? "✓" : n}
+                  </span>
+                  <span className="hidden sm:inline">{label}</span>
+                </button>
+                {n < STEPS.length && <span className="text-slate-300">—</span>}
+              </li>
             );
           })}
-        </div>
-      </Card>
-
-      <Card className="p-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="label">Ongkir (Rupiah)</label>
-            <input
-              type="number"
-              min={0}
-              step="any"
-              className="input"
-              value={isBonus ? "0" : ongkir}
-              onChange={(e) => setOngkir(e.target.value)}
-              disabled={isBonus}
-            />
-            <p className="mt-1 text-xs text-slate-500">
-              Ongkir ditambahkan ke tagihan, tidak masuk omzet/laba.
-            </p>
-          </div>
-          <div className="rounded-md bg-slate-50 p-4">
-            <div className="flex justify-between py-1 text-sm">
-              <span>Omzet (tanpa ongkir)</span>
-              <span className="font-medium">{formatIDR(totals.omzet)}</span>
-            </div>
-            <div className="flex justify-between py-1 text-sm">
-              <span>Ongkir</span>
-              <span className="font-medium">{formatIDR(totals.ongkirNum)}</span>
-            </div>
-            <div className="mt-1 flex justify-between border-t border-slate-200 pt-2 text-base font-bold">
-              <span>Total Tagihan</span>
-              <span>{formatIDR(totals.owed)}</span>
-            </div>
-          </div>
-        </div>
+        </ol>
 
         {error && (
-          <div className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">
-            {error}
+          <div className="rounded-xl bg-red-50 px-4 py-3 text-lg font-semibold text-red-700">
+            ⚠ {error}
           </div>
         )}
 
-        <div className="mt-4 flex gap-2">
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Simpan Bon"}
-          </button>
-          <button type="button" className="btn-secondary" onClick={() => router.back()}>
-            Batal
-          </button>
-        </div>
-        {!isEdit && !isBonus && (
-          <p className="mt-2 text-xs text-slate-500">
-            Bon baru otomatis berstatus <b>Piutang</b>.
-          </p>
+        {/* STEP 1 */}
+        {step === 1 && (
+          <Card className="p-6">
+            <h2 className="mb-4 text-xl font-bold">Langkah 1 — Info Bon</h2>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
+                <label className="label">Tanggal</label>
+                <input type="date" className="input" value={tanggal} onChange={(e) => setTanggal(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">Nomor Bon</label>
+                <input className="input" value={nomorBon} onChange={(e) => setNomorBon(e.target.value)} placeholder="Contoh: BON-004" />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Pilih Pelanggan</label>
+                <select className="input" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
+                  <option value="">— Pilih pelanggan —</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nama}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label">Deskripsi (boleh kosong)</label>
+                <input className="input" value={deskripsi} onChange={(e) => setDeskripsi(e.target.value)} placeholder="Catatan tambahan" />
+              </div>
+            </div>
+          </Card>
         )}
-      </Card>
-    </form>
+
+        {/* STEP 2 */}
+        {step === 2 && (
+          <Card className="p-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-xl font-bold">Langkah 2 — Pilih Produk</h2>
+              <button type="button" className="btn-secondary" onClick={addLine}>
+                + Tambah Produk
+              </button>
+            </div>
+            <p className="help mb-4">Harga otomatis mengikuti diskon pelanggan.</p>
+            {!customer && (
+              <p className="mb-3 rounded-lg bg-amber-50 px-4 py-3 text-base text-amber-800">
+                Pilih pelanggan dulu di Langkah 1 untuk melihat harga setelah diskon.
+              </p>
+            )}
+            <div className="space-y-4">
+              {lines.map((line, i) => {
+                const c = lineComputed(line);
+                return (
+                  <div key={i} className="rounded-xl border-2 border-slate-200 p-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
+                      <div className="sm:col-span-6">
+                        <label className="label">Produk</label>
+                        <select className="input" value={line.productId} onChange={(e) => updateLine(i, { productId: e.target.value })}>
+                          <option value="">— Pilih produk —</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>{p.nama} ({p.tipe})</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <label className="label">Jumlah</label>
+                        <input type="number" min={1} className="input" value={line.quantity}
+                          onChange={(e) => updateLine(i, { quantity: Math.max(1, Number(e.target.value)) })} />
+                      </div>
+                      <div className="sm:col-span-4 flex items-end">
+                        <button type="button" className="btn-danger btn-block" onClick={() => removeLine(i)} disabled={lines.length === 1}>
+                          🗑 Hapus Produk
+                        </button>
+                      </div>
+                    </div>
+                    {line.productId && (
+                      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg bg-slate-50 px-4 py-3 text-base">
+                        {c.tipe && <span className="flex items-center gap-2">Tipe: <TypeBadge tipe={c.tipe} /></span>}
+                        <span>Harga setelah diskon: <b>{formatIDR(c.discountedUnitPrice)}</b></span>
+                        <span>Omzet: <b>{isBonus ? formatIDR(0) : formatIDR(c.lineOmzet)}</b></span>
+                        {c.steps.length > 0 && (
+                          <span className="text-slate-500">Diskon {c.tipe}: {c.steps.map((s) => `${s}%`).join(" → ")}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        )}
+
+        {/* STEP 3 */}
+        {step === 3 && (
+          <Card className="p-6">
+            <h2 className="mb-4 text-xl font-bold">Langkah 3 — Ongkir &amp; Bonus</h2>
+            <div className="max-w-sm">
+              <label className="label">Ongkir (Rupiah)</label>
+              <input type="number" min={0} step="any" className="input" value={isBonus ? "0" : ongkir}
+                onChange={(e) => setOngkir(e.target.value)} disabled={isBonus} />
+              <p className="help">Ongkir ditambahkan ke total tagihan, tetapi tidak masuk omzet/laba.</p>
+            </div>
+
+            <label className="mt-6 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-purple-200 bg-purple-50 p-4">
+              <input type="checkbox" className="h-6 w-6" checked={isBonus} onChange={(e) => setIsBonus(e.target.checked)} />
+              <span className="text-lg font-bold text-purple-800">Ini Bon Bonus</span>
+            </label>
+
+            {isBonus && (
+              <div className="mt-4 space-y-4">
+                <div className="rounded-xl bg-purple-50 px-4 py-3 text-lg text-purple-800">
+                  🎁 Bon Bonus gratis. Tidak masuk omzet, piutang, atau laba.
+                </div>
+                <div className="text-lg font-semibold text-purple-800">
+                  Bonus tersedia: {bonusAvailable == null ? "memuat..." : bonusAvailable}
+                </div>
+                <div className="max-w-xs">
+                  <label className="label">Jumlah bonus yang dipakai</label>
+                  <input type="number" min={1} className="input" value={bonusUnitsGranted}
+                    onChange={(e) => setBonusUnitsGranted(Number(e.target.value))} />
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* STEP 4 */}
+        {step === 4 && (
+          <Card className="p-6">
+            <h2 className="mb-4 text-xl font-bold">Langkah 4 — Ringkasan &amp; Simpan</h2>
+            <dl className="divide-y-2 divide-slate-100 text-lg">
+              <SummaryRow label="Pelanggan" value={customerName} />
+              <SummaryRow label="Nomor Bon" value={nomorBon || "-"} />
+              <SummaryRow label="Tanggal" value={tanggal} />
+              <SummaryRow label="Omzet" value={formatIDR(totals.omzet)} />
+              <SummaryRow label="Ongkir" value={formatIDR(totals.ongkirNum)} />
+              <SummaryRow label="Total Tagihan" value={formatIDR(totals.owed)} strong />
+              <SummaryRow label="Laba HL" value={formatIDR(totals.laba)} />
+              <SummaryRow label="Status Awal" value={isBonus ? "Bonus" : "Piutang"} />
+              <SummaryRow label="Bon Bonus" value={isBonus ? `Ya (${bonusUnitsGranted} bonus)` : "Tidak"} />
+            </dl>
+            {!isBonus && (
+              <p className="help mt-4">Bon baru otomatis berstatus <b>Piutang</b> sampai ditandai Lunas.</p>
+            )}
+          </Card>
+        )}
+
+        {/* Navigation */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button type="button" className="btn-secondary" onClick={step === 1 ? () => router.back() : back}>
+            {step === 1 ? "Batal" : "← Kembali"}
+          </button>
+          {step < 4 ? (
+            <button type="button" className="btn-primary btn-lg" onClick={next}>
+              Lanjut →
+            </button>
+          ) : (
+            <button type="button" className="btn-success btn-lg" onClick={onSave} disabled={loading}>
+              {loading ? "Menyimpan..." : isEdit ? "💾 Simpan Perubahan" : "💾 Simpan Bon"}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky totals */}
+      <aside className="lg:sticky lg:top-6 lg:self-start">
+        <Card className={`p-6 ${isBonus ? "border-purple-300 bg-purple-50/40" : ""}`}>
+          <h3 className="mb-4 text-lg font-bold text-slate-700">Ringkasan Bon</h3>
+          <div className="space-y-3 text-lg">
+            <TotalRow label="Omzet" value={formatIDR(totals.omzet)} />
+            <TotalRow label="Ongkir" value={formatIDR(totals.ongkirNum)} />
+            <div className="rounded-xl bg-brand-600 px-4 py-3 text-white">
+              <div className="text-sm font-semibold opacity-90">Total Tagihan</div>
+              <div className="text-3xl font-extrabold">{formatIDR(totals.owed)}</div>
+            </div>
+            <TotalRow label="Laba HL" value={formatIDR(totals.laba)} />
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-slate-600">Status</span>
+              {isBonus ? <span className="badge-bonus">🎁 Bonus</span> : <span className="badge-piutang">● Piutang</span>}
+            </div>
+          </div>
+          {isBonus && (
+            <p className="mt-4 rounded-lg bg-purple-100 px-3 py-2 text-base text-purple-800">
+              Bon Bonus: Omzet Rp 0, Total Rp 0, Laba Rp 0.
+            </p>
+          )}
+        </Card>
+      </aside>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className="flex items-center justify-between py-3">
+      <dt className="text-slate-600">{label}</dt>
+      <dd className={strong ? "text-2xl font-extrabold text-brand-700" : "font-semibold text-slate-900"}>{value}</dd>
+    </div>
+  );
+}
+
+function TotalRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-slate-600">{label}</span>
+      <span className="font-bold text-slate-900">{value}</span>
+    </div>
   );
 }

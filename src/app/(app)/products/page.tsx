@@ -1,25 +1,54 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Card, TypeBadge } from "@/components/ui";
+import SearchField from "@/components/SearchField";
+import FilterSelect from "@/components/FilterSelect";
 import { formatIDR } from "@/lib/format";
 import DeleteButton from "@/components/DeleteButton";
 
 export const dynamic = "force-dynamic";
 
-export default async function ProductsPage() {
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: { q?: string; tipe?: string };
+}) {
+  const q = searchParams.q || "";
+  const tipe = searchParams.tipe || "";
   const products = await prisma.product.findMany({
-    where: { deletedAt: null },
+    where: {
+      deletedAt: null,
+      ...(q ? { nama: { contains: q } } : {}),
+      ...(tipe === "LM" || tipe === "BR" ? { tipe } : {}),
+    },
     orderBy: [{ tipe: "asc" }, { nama: "asc" }],
   });
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Produk</h1>
-        <Link href="/products/new" className="btn-primary">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-extrabold">Produk</h1>
+        <Link href="/products/new" className="btn-primary btn-lg">
           + Tambah Produk
         </Link>
       </div>
+
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="min-w-[16rem] flex-1">
+            <SearchField paramKey="q" placeholder="Cari nama produk..." />
+          </div>
+          <FilterSelect
+            paramKey="tipe"
+            value={tipe}
+            allLabel="Semua Tipe"
+            options={[
+              { value: "LM", label: "LM" },
+              { value: "BR", label: "BR" },
+            ]}
+          />
+        </div>
+      </Card>
 
       <Card>
         <div className="overflow-x-auto">
@@ -29,7 +58,7 @@ export default async function ProductsPage() {
                 <th className="table-th">Nama</th>
                 <th className="table-th">Tipe</th>
                 <th className="table-th text-right">Harga Base / Jual</th>
-                <th className="table-th text-right">Harga Modal</th>
+                <th className="table-th text-right">Harga Modal (Internal)</th>
                 <th className="table-th text-right">Aksi</th>
               </tr>
             </thead>
@@ -47,18 +76,20 @@ export default async function ProductsPage() {
                   <td className="table-td">
                     <TypeBadge tipe={p.tipe} />
                   </td>
-                  <td className="table-td text-right">{formatIDR(p.hargaBase)}</td>
-                  <td className="table-td text-right text-slate-400">
-                    {formatIDR(p.hargaModal)}
+                  <td className="table-td text-right font-semibold">{formatIDR(p.hargaBase)}</td>
+                  <td className="table-td text-right">
+                    <span className="text-slate-600">{formatIDR(p.hargaModal)}</span>
+                    <span className="ml-2 badge bg-slate-100 text-slate-500">Internal</span>
                   </td>
                   <td className="table-td">
                     <div className="flex justify-end gap-2">
-                      <Link href={`/products/${p.id}/edit`} className="btn-secondary py-1">
-                        Edit
+                      <Link href={`/products/${p.id}/edit`} className="btn-secondary">
+                        ✏️ Edit
                       </Link>
                       <DeleteButton
                         url={`/api/products/${p.id}`}
-                        confirmText={`Hapus produk "${p.nama}"? Riwayat bon tetap utuh (soft-delete).`}
+                        title="Hapus Produk?"
+                        confirmText="Produk akan disembunyikan dari Bon baru, tetapi riwayat Bon lama tetap aman."
                       />
                     </div>
                   </td>

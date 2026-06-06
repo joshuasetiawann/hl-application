@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { formatIDR, monthLabel } from "@/lib/format";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {

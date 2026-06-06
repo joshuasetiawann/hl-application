@@ -37,3 +37,6 @@ next-env.d.ts
 /prisma/*.db
 /prisma/*.db-journal
 /prisma/dev.db*
+
+# local verification artifacts (HTML DOM captures; not committed)
+/screenshots/

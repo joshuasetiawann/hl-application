@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiSend } from "@/lib/client";
 import { toDateInputValue } from "@/lib/format";
+import Modal from "@/components/Modal";
+import { useToast } from "@/components/Toast";
 
 /**
  * Settlement button + payment-date modal. Works for both:
@@ -12,18 +14,27 @@ import { toDateInputValue } from "@/lib/format";
  */
 export default function SettleButton({
   url,
-  label = "Lunas",
+  label = "Tandai Lunas",
+  title = "Tandai Bon Sudah Lunas",
+  description,
+  confirmLabel = "Simpan sebagai Lunas",
   extraBody,
-  successMessage,
+  successMessage = "Berhasil ditandai Lunas",
   variant = "success",
+  size = "",
 }: {
   url: string;
   label?: string;
+  title?: string;
+  description?: string;
+  confirmLabel?: string;
   extraBody?: Record<string, unknown>;
   successMessage?: string;
   variant?: "success" | "primary";
+  size?: string;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState(toDateInputValue(new Date()));
   const [loading, setLoading] = useState(false);
@@ -42,10 +53,8 @@ export default function SettleButton({
         ...extraBody,
       });
       setOpen(false);
-      if (successMessage) {
-        const cnt = typeof res.count === "number" ? ` (${res.count} bon)` : "";
-        alert(successMessage + cnt);
-      }
+      const cnt = typeof res.count === "number" ? ` (${res.count} bon)` : "";
+      toast.show(successMessage + cnt, "success");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal melakukan pelunasan");
@@ -57,35 +66,35 @@ export default function SettleButton({
   return (
     <>
       <button
-        className={variant === "primary" ? "btn-primary" : "btn-success"}
+        className={`${variant === "primary" ? "btn-primary" : "btn-success"} ${size}`}
         onClick={() => setOpen(true)}
       >
-        {label}
+        ✓ {label}
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="card w-full max-w-sm p-6">
-            <h3 className="mb-4 text-lg font-semibold">Konfirmasi Pelunasan</h3>
-            <label className="label">Tanggal Pelunasan</label>
-            <input
-              type="date"
-              className="input"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-            <div className="mt-5 flex justify-end gap-2">
-              <button className="btn-secondary" onClick={() => setOpen(false)} disabled={loading}>
-                Batal
-              </button>
-              <button className="btn-success" onClick={confirm} disabled={loading}>
-                {loading ? "Memproses..." : "Konfirmasi"}
-              </button>
-            </div>
-          </div>
+      <Modal open={open} onClose={() => !loading && setOpen(false)} title={title}>
+        {description && <p className="mb-4 text-lg text-slate-700">{description}</p>}
+        <label className="label">Tanggal Pelunasan</label>
+        <input
+          type="date"
+          className="input"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+        {error && (
+          <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-base font-medium text-red-700">
+            ⚠ {error}
+          </p>
+        )}
+        <div className="mt-6 flex justify-end gap-3">
+          <button className="btn-secondary" onClick={() => setOpen(false)} disabled={loading}>
+            Batal
+          </button>
+          <button className="btn-success" onClick={confirm} disabled={loading}>
+            {loading ? "Memproses..." : confirmLabel}
+          </button>
         </div>
-      )}
+      </Modal>
     </>
   );
 }

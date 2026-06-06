@@ -4,6 +4,7 @@ import { recapOverall } from "@/lib/services/report";
 import { getEligibleCustomers } from "@/lib/services/bonus";
 import { calculateRecognizedTotals } from "@/lib/calc";
 import { StatCard, Card, StatusBadge } from "@/components/ui";
+import PdfButton from "@/components/PdfButton";
 import { formatIDR, formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export default async function DashboardPage() {
 
   const monthRecap = await recapOverall({ year, month });
   const eligible = await getEligibleCustomers();
+  const totalBonus = eligible.reduce((s, c) => s + c.bonusesAvailable, 0);
 
   const recentBons = await prisma.transaction.findMany({
     where: { deletedAt: null },
@@ -44,53 +46,68 @@ export default async function DashboardPage() {
     take: 8,
   });
 
+  const hari = now.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-slate-500">
-            Ringkasan bulan {now.toLocaleDateString("id-ID", { month: "long", year: "numeric" })}
-          </p>
+      <Card className="bg-gradient-to-br from-brand-600 to-brand-700 p-6 text-white">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-extrabold">Selamat datang di HL 👋</h1>
+            <p className="mt-1 text-lg text-brand-50">Hari ini: {hari}</p>
+          </div>
+          <Link href="/transactions/new" className="btn btn-lg bg-white text-brand-700 hover:bg-brand-50">
+            + Buat Bon Baru
+          </Link>
         </div>
-        <Link href="/transactions/new" className="btn-primary">
-          + Buat Bon
-        </Link>
-      </div>
+      </Card>
 
       {/* Quick actions */}
-      <div className="flex flex-wrap gap-2">
-        <Link href="/customers/new" className="btn-secondary">+ Pelanggan</Link>
-        <Link href="/products/new" className="btn-secondary">+ Produk</Link>
-        <Link href="/transactions/new" className="btn-secondary">+ Bon</Link>
-        <Link href="/reports" className="btn-secondary">Rekap</Link>
-        <Link href="/transactions?status=PIUTANG" className="btn-secondary">Daftar Piutang</Link>
-        <a href="/api/pdf/piutang" target="_blank" className="btn-secondary">PDF Piutang</a>
+      <div className="flex flex-wrap gap-3">
+        <Link href="/customers/new" className="btn-secondary">👥 Tambah Pelanggan</Link>
+        <Link href="/products/new" className="btn-secondary">📦 Tambah Produk</Link>
+        <Link href="/reports" className="btn-secondary">📊 Lihat Rekap</Link>
+        <Link href="/piutang" className="btn-secondary">💳 Daftar Piutang</Link>
+        <PdfButton url="/api/pdf/piutang" label="PDF Piutang" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
-          label="Total Piutang Outstanding"
+          label="Total Piutang"
           value={formatIDR(allTotals.totalOutstandingPiutang.toNumber())}
           accent="red"
-          hint="Seluruh transaksi belum Lunas"
+          icon="💳"
+          hint="Semua bon belum Lunas"
         />
         <StatCard
           label="Sudah Dibayar Bulan Ini"
           value={formatIDR(monthRecap.totalPaid)}
           accent="green"
+          icon="✓"
         />
         <StatCard
-          label="Omzet Diakui Bulan Ini"
+          label="Omzet Lunas Bulan Ini"
           value={formatIDR(monthRecap.recognizedOmzet)}
           accent="blue"
-          hint="Hanya transaksi Lunas"
+          icon="📈"
         />
         <StatCard
           label="Laba HL Bulan Ini"
           value={formatIDR(monthRecap.recognizedProfit)}
           accent="blue"
-          hint="Hanya transaksi Lunas"
+          icon="💰"
+        />
+        <StatCard
+          label="Bonus Tersedia"
+          value={String(totalBonus)}
+          accent="purple"
+          icon="🎁"
+          hint={`${eligible.length} pelanggan`}
         />
       </div>
 
