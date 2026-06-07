@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, TypeBadge } from "@/components/ui";
+import { Card, TypeBadge, StatusBadge } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import { useToast } from "@/components/Toast";
 import { apiGet, apiSend } from "@/lib/client";
 import {
@@ -246,49 +247,49 @@ export default function TransactionForm({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
       <div className="space-y-6">
         {/* Stepper */}
-        <ol className="flex flex-wrap items-center gap-2">
+        <ol className="flex flex-wrap items-center gap-1.5">
           {STEPS.map((label, i) => {
             const n = i + 1;
             const active = n === step;
             const done = n < step;
             return (
-              <li key={label} className="flex items-center gap-2">
+              <li key={label} className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => n < step && setStep(n)}
-                  className={`flex items-center gap-2 rounded-full px-4 py-2 text-base font-bold ${
+                  className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[0.85rem] font-semibold transition-colors ${
                     active
-                      ? "bg-brand-600 text-white"
+                      ? "bg-brand-700 text-white shadow-card"
                       : done
-                        ? "bg-emerald-100 text-emerald-800"
+                        ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200"
                         : "bg-slate-100 text-slate-500"
                   }`}
                 >
                   <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-full text-sm ${
-                      active ? "bg-white/25" : done ? "bg-emerald-200" : "bg-slate-200"
+                    className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.72rem] ${
+                      active ? "bg-white/20" : done ? "bg-emerald-200/70" : "bg-slate-200"
                     }`}
                   >
-                    {done ? "✓" : n}
+                    {done ? <Icon name="check" size={12} strokeWidth={2.5} /> : n}
                   </span>
                   <span className="hidden sm:inline">{label}</span>
                 </button>
-                {n < STEPS.length && <span className="text-slate-300">—</span>}
+                {n < STEPS.length && <span className="text-slate-300">·</span>}
               </li>
             );
           })}
         </ol>
 
         {error && (
-          <div className="rounded-xl bg-red-50 px-4 py-3 text-lg font-semibold text-red-700">
-            ⚠ {error}
+          <div className="flex items-center gap-2.5 rounded-xl bg-rose-50 px-4 py-3 text-[0.95rem] font-medium text-rose-700 ring-1 ring-inset ring-rose-100">
+            <Icon name="alert" size={18} className="shrink-0" /> {error}
           </div>
         )}
 
         {/* STEP 1 */}
         {step === 1 && (
-          <Card className="p-6">
-            <h2 className="mb-4 text-xl font-bold">Langkah 1 — Info Bon</h2>
+          <Card className="p-5 sm:p-6">
+            <h2 className="mb-4 text-base font-semibold text-slate-900">Langkah 1 — Info Bon</h2>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
                 <label className="label">Tanggal</label>
@@ -317,24 +318,25 @@ export default function TransactionForm({
 
         {/* STEP 2 */}
         {step === 2 && (
-          <Card className="p-6">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Langkah 2 — Pilih Produk</h2>
-              <button type="button" className="btn-secondary" onClick={addLine}>
-                + Tambah Produk
+          <Card className="p-5 sm:p-6">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h2 className="text-base font-semibold text-slate-900">Langkah 2 — Pilih Produk</h2>
+              <button type="button" className="btn-secondary btn-sm" onClick={addLine}>
+                <Icon name="plus" size={16} /> Tambah Produk
               </button>
             </div>
             <p className="help mb-4">Harga otomatis mengikuti diskon pelanggan.</p>
             {!customer && (
-              <p className="mb-3 rounded-lg bg-amber-50 px-4 py-3 text-base text-amber-800">
+              <p className="mb-3 flex items-center gap-2 rounded-lg bg-amber-50 px-4 py-3 text-[0.9rem] text-amber-800 ring-1 ring-inset ring-amber-100">
+                <Icon name="info" size={16} className="shrink-0" />
                 Pilih pelanggan dulu di Langkah 1 untuk melihat harga setelah diskon.
               </p>
             )}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {lines.map((line, i) => {
                 const c = lineComputed(line);
                 return (
-                  <div key={i} className="rounded-xl border-2 border-slate-200 p-4">
+                  <div key={i} className="rounded-xl border border-slate-200 bg-slate-50/40 p-4">
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-12">
                       <div className="sm:col-span-6">
                         <label className="label">Produk</label>
@@ -351,13 +353,13 @@ export default function TransactionForm({
                           onChange={(e) => updateLine(i, { quantity: Math.max(1, Number(e.target.value)) })} />
                       </div>
                       <div className="sm:col-span-4 flex items-end">
-                        <button type="button" className="btn-danger btn-block" onClick={() => removeLine(i)} disabled={lines.length === 1}>
-                          🗑 Hapus Produk
+                        <button type="button" className="btn-secondary btn-block text-rose-600 hover:border-rose-300 hover:bg-rose-50" onClick={() => removeLine(i)} disabled={lines.length === 1}>
+                          <Icon name="trash" size={16} /> Hapus Produk
                         </button>
                       </div>
                     </div>
                     {line.productId && (
-                      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg bg-slate-50 px-4 py-3 text-base">
+                      <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-1 rounded-lg border border-slate-200 bg-white px-4 py-3 text-[0.9rem]">
                         {c.tipe && <span className="flex items-center gap-2">Tipe: <TypeBadge tipe={c.tipe} /></span>}
                         <span>Harga setelah diskon: <b>{formatIDR(c.discountedUnitPrice)}</b></span>
                         <span>Omzet: <b>{isBonus ? formatIDR(0) : formatIDR(c.lineOmzet)}</b></span>
@@ -375,8 +377,8 @@ export default function TransactionForm({
 
         {/* STEP 3 */}
         {step === 3 && (
-          <Card className="p-6">
-            <h2 className="mb-4 text-xl font-bold">Langkah 3 — Ongkir &amp; Bonus</h2>
+          <Card className="p-5 sm:p-6">
+            <h2 className="mb-4 text-base font-semibold text-slate-900">Langkah 3 — Ongkir &amp; Bonus</h2>
             <div className="max-w-sm">
               <label className="label">Ongkir (Rupiah)</label>
               <input type="number" min={0} step="any" className="input" value={isBonus ? "0" : ongkir}
@@ -384,18 +386,20 @@ export default function TransactionForm({
               <p className="help">Ongkir ditambahkan ke total tagihan, tetapi tidak masuk omzet/laba.</p>
             </div>
 
-            <label className="mt-6 flex cursor-pointer items-center gap-3 rounded-xl border-2 border-purple-200 bg-purple-50 p-4">
-              <input type="checkbox" className="h-6 w-6" checked={isBonus} onChange={(e) => setIsBonus(e.target.checked)} />
-              <span className="text-lg font-bold text-purple-800">Ini Bon Bonus</span>
+            <label className="mt-6 flex cursor-pointer items-center gap-3 rounded-xl border border-gold-200 bg-gold-50/60 p-4">
+              <input type="checkbox" className="h-5 w-5 accent-gold-600" checked={isBonus} onChange={(e) => setIsBonus(e.target.checked)} />
+              <span className="flex items-center gap-2 text-[0.95rem] font-semibold text-gold-800">
+                <Icon name="gift" size={18} /> Ini Bon Bonus
+              </span>
             </label>
 
             {isBonus && (
               <div className="mt-4 space-y-4">
-                <div className="rounded-xl bg-purple-50 px-4 py-3 text-lg text-purple-800">
-                  🎁 Bon Bonus gratis. Tidak masuk omzet, piutang, atau laba.
+                <div className="rounded-xl bg-gold-50/70 px-4 py-3 text-[0.92rem] text-gold-800 ring-1 ring-inset ring-gold-100">
+                  Bon Bonus gratis. Tidak masuk omzet, piutang, atau laba.
                 </div>
-                <div className="text-lg font-semibold text-purple-800">
-                  Bonus tersedia: {bonusAvailable == null ? "memuat..." : bonusAvailable}
+                <div className="text-[0.95rem] font-semibold text-gold-800">
+                  Bonus tersedia: {bonusAvailable == null ? "memuat…" : bonusAvailable}
                 </div>
                 <div className="max-w-xs">
                   <label className="label">Jumlah bonus yang dipakai</label>
@@ -409,9 +413,9 @@ export default function TransactionForm({
 
         {/* STEP 4 */}
         {step === 4 && (
-          <Card className="p-6">
-            <h2 className="mb-4 text-xl font-bold">Langkah 4 — Ringkasan &amp; Simpan</h2>
-            <dl className="divide-y-2 divide-slate-100 text-lg">
+          <Card className="p-5 sm:p-6">
+            <h2 className="mb-4 text-base font-semibold text-slate-900">Langkah 4 — Ringkasan &amp; Simpan</h2>
+            <dl className="divide-y divide-slate-100 text-[0.95rem]">
               <SummaryRow label="Pelanggan" value={customerName} />
               <SummaryRow label="Nomor Bon" value={nomorBon || "-"} />
               <SummaryRow label="Tanggal" value={tanggal} />
@@ -431,15 +435,27 @@ export default function TransactionForm({
         {/* Navigation */}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <button type="button" className="btn-secondary" onClick={step === 1 ? () => router.back() : back}>
-            {step === 1 ? "Batal" : "← Kembali"}
+            {step === 1 ? (
+              "Batal"
+            ) : (
+              <>
+                <Icon name="arrowLeft" size={17} /> Kembali
+              </>
+            )}
           </button>
           {step < 4 ? (
             <button type="button" className="btn-primary btn-lg" onClick={next}>
-              Lanjut →
+              Lanjut <Icon name="arrowRight" size={18} />
             </button>
           ) : (
             <button type="button" className="btn-success btn-lg" onClick={onSave} disabled={loading}>
-              {loading ? "Menyimpan..." : isEdit ? "💾 Simpan Perubahan" : "💾 Simpan Bon"}
+              {loading ? (
+                "Menyimpan…"
+              ) : (
+                <>
+                  <Icon name="check" size={18} /> {isEdit ? "Simpan Perubahan" : "Simpan Bon"}
+                </>
+              )}
             </button>
           )}
         </div>
@@ -447,23 +463,27 @@ export default function TransactionForm({
 
       {/* Sticky totals */}
       <aside className="lg:sticky lg:top-6 lg:self-start">
-        <Card className={`p-6 ${isBonus ? "border-purple-300 bg-purple-50/40" : ""}`}>
-          <h3 className="mb-4 text-lg font-bold text-slate-700">Ringkasan Bon</h3>
-          <div className="space-y-3 text-lg">
+        <Card className={`p-5 sm:p-6 ${isBonus ? "border-gold-200 bg-gold-50/30" : ""}`}>
+          <h3 className="mb-4 text-[0.78rem] font-semibold uppercase tracking-wide text-slate-500">
+            Ringkasan Bon
+          </h3>
+          <div className="space-y-3">
             <TotalRow label="Omzet" value={formatIDR(totals.omzet)} />
             <TotalRow label="Ongkir" value={formatIDR(totals.ongkirNum)} />
-            <div className="rounded-xl bg-brand-600 px-4 py-3 text-white">
-              <div className="text-sm font-semibold opacity-90">Total Tagihan</div>
-              <div className="text-3xl font-extrabold">{formatIDR(totals.owed)}</div>
+            <div className="rounded-xl bg-brand-800 px-4 py-3.5 text-white">
+              <div className="text-[0.78rem] font-medium uppercase tracking-wide text-white/70">
+                Total Tagihan
+              </div>
+              <div className="mt-0.5 text-2xl font-bold tracking-tight tnum">{formatIDR(totals.owed)}</div>
             </div>
             <TotalRow label="Laba HL" value={formatIDR(totals.laba)} />
             <div className="flex items-center justify-between pt-1">
-              <span className="text-slate-600">Status</span>
-              {isBonus ? <span className="badge-bonus">🎁 Bonus</span> : <span className="badge-piutang">● Piutang</span>}
+              <span className="text-[0.92rem] text-slate-500">Status</span>
+              {isBonus ? <StatusBadge isBonus /> : <StatusBadge status="PIUTANG" />}
             </div>
           </div>
           {isBonus && (
-            <p className="mt-4 rounded-lg bg-purple-100 px-3 py-2 text-base text-purple-800">
+            <p className="mt-4 rounded-lg bg-gold-50 px-3 py-2 text-[0.88rem] text-gold-800 ring-1 ring-inset ring-gold-100">
               Bon Bonus: Omzet Rp 0, Total Rp 0, Laba Rp 0.
             </p>
           )}
@@ -475,18 +495,20 @@ export default function TransactionForm({
 
 function SummaryRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-3">
-      <dt className="text-slate-600">{label}</dt>
-      <dd className={strong ? "text-2xl font-extrabold text-brand-700" : "font-semibold text-slate-900"}>{value}</dd>
+    <div className="flex items-center justify-between gap-4 py-2.5">
+      <dt className="text-slate-500">{label}</dt>
+      <dd className={strong ? "text-xl font-bold tracking-tight tnum text-brand-700" : "font-semibold tnum text-slate-900"}>
+        {value}
+      </dd>
     </div>
   );
 }
 
 function TotalRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between">
-      <span className="text-slate-600">{label}</span>
-      <span className="font-bold text-slate-900">{value}</span>
+    <div className="flex items-center justify-between gap-4 text-[0.95rem]">
+      <span className="text-slate-500">{label}</span>
+      <span className="font-semibold tnum text-slate-900">{value}</span>
     </div>
   );
 }

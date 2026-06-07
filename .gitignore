@@ -39,4 +39,12 @@ next-env.d.ts
 /prisma/dev.db*
 
 # local verification artifacts (HTML DOM captures; not committed)
-/screenshots/
+# — except the curated premium-UI showcase, which IS committed.
+/screenshots/*
+!/screenshots/premium-ui/
+
+# ops runtime artifacts (logs + pid) — keep the folders, ignore their contents
+/ops/logs/*
+!/ops/logs/.gitkeep
+/ops/runtime/*
+!/ops/runtime/.gitkeep

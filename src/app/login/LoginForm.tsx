@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, ErrorText } from "@/components/ui";
+import { Icon } from "@/components/icons";
 
 export default function LoginForm() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -23,64 +24,81 @@ export default function LoginForm() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error || "Login gagal");
+        setError(data.error || "Username atau password salah.");
         return;
       }
       router.replace("/");
       router.refresh();
     } catch {
-      setError("Tidak dapat terhubung ke server");
+      setError("Tidak dapat terhubung ke server. Coba lagi.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <Card className="p-7">
-      <form onSubmit={onSubmit} className="space-y-5">
-        <div>
-          <label className="label" htmlFor="username">
-            Username
-          </label>
-          <input
-            id="username"
-            className="input"
-            placeholder="Masukkan username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoComplete="username"
-            required
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor="password">
-            Password
-          </label>
+    <form onSubmit={onSubmit} className="space-y-5">
+      <div>
+        <label className="label" htmlFor="username">
+          Username
+        </label>
+        <input
+          id="username"
+          className="input"
+          placeholder="Masukkan username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          autoComplete="username"
+          autoFocus
+          required
+        />
+      </div>
+      <div>
+        <label className="label" htmlFor="password">
+          Password
+        </label>
+        <div className="relative">
           <input
             id="password"
-            type="password"
-            className="input"
+            type={showPassword ? "text" : "password"}
+            className="input pr-12"
             placeholder="Masukkan password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
             required
           />
+          <button
+            type="button"
+            onClick={() => setShowPassword((s) => !s)}
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+            tabIndex={-1}
+          >
+            <Icon name={showPassword ? "lock" : "eye"} size={18} />
+          </button>
         </div>
-        {error && (
-          <div className="rounded-xl bg-red-50 px-4 py-3 text-lg font-semibold text-red-700">
-            ⚠ {error}
-          </div>
-        )}
-        <button type="submit" className="btn-primary btn-lg btn-block" disabled={loading}>
-          {loading ? "Memproses..." : "Masuk"}
-        </button>
-      </form>
-      <div className="mt-5 rounded-xl bg-slate-50 px-4 py-3 text-base text-slate-600">
-        <div className="font-bold text-slate-700">Akun demo:</div>
-        <div>Username: <span className="font-mono font-bold">admin</span></div>
-        <div>Password: <span className="font-mono font-bold">admin123</span></div>
       </div>
-    </Card>
+
+      {error && (
+        <div
+          role="alert"
+          className="flex items-start gap-2.5 rounded-lg bg-rose-50 px-4 py-3 text-[0.9rem] font-medium text-rose-700 ring-1 ring-inset ring-rose-100"
+        >
+          <Icon name="alert" size={18} className="mt-0.5 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      <button type="submit" className="btn-primary btn-lg btn-block" disabled={loading}>
+        {loading ? (
+          "Memproses…"
+        ) : (
+          <>
+            <Icon name="lock" size={18} /> Masuk
+          </>
+        )}
+      </button>
+    </form>
   );
 }

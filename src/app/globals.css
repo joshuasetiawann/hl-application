@@ -4,87 +4,168 @@
 
 :root {
   color-scheme: light;
+  /* Warm, neutral application canvas — calm and premium, never stark white. */
+  --app-bg: #f7f6f3;
+  --app-bg-accent: #f1efea;
+  --ink: #1d2433;
 }
 
 html {
-  /* Senior-friendly base: larger root size so rem-based text scales up everywhere. */
-  font-size: 18px;
+  /* Comfortable, readable base for non-technical users without looking oversized. */
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  @apply bg-amber-50/40 text-slate-900 antialiased;
+  background-color: var(--app-bg);
+  background-image:
+    radial-gradient(1200px 600px at 100% -10%, rgba(52, 87, 133, 0.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 0%, rgba(189, 139, 45, 0.05), transparent 55%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-feature-settings: "tnum", "cv01", "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Numbers read as executive figures: aligned, tabular, never jittery. */
+.tnum {
+  font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
 
 @layer base {
-  /* High-contrast, comfortably large default text. */
-  p, li, td, th, label, input, select, textarea, button {
-    @apply text-[1.05rem] leading-relaxed;
+  body {
+    @apply text-[0.975rem] leading-relaxed text-slate-700;
+  }
+  h1, h2, h3, h4 {
+    @apply text-slate-900;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background-color: rgb(52 87 133 / 0.18);
+  }
+  /* Consistent, calm focus treatment across interactive elements. */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    @apply outline-none ring-2 ring-brand-500/40 ring-offset-2 ring-offset-[var(--app-bg)];
+    border-radius: 0.5rem;
   }
 }
 
 @layer components {
-  /* Buttons: big targets, clear focus, never tiny. */
+  /* ---- Buttons: polished, confident, comfortable tap targets ---- */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-base font-semibold transition-colors
-           min-h-[3rem] focus:outline-none focus-visible:ring-4 focus-visible:ring-offset-2
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-lg px-4 py-2.5
+           text-[0.95rem] font-semibold leading-none transition-all duration-150
+           min-h-[2.75rem] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+           focus-visible:ring-offset-[var(--app-bg)]
+           disabled:opacity-55 disabled:cursor-not-allowed disabled:shadow-none active:translate-y-px;
   }
   .btn-primary {
-    @apply btn bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-300 shadow-sm;
+    @apply btn bg-brand-700 text-white shadow-card hover:bg-brand-800
+           focus-visible:ring-brand-500/50;
   }
   .btn-secondary {
-    @apply btn bg-white text-slate-800 border-2 border-slate-300 hover:bg-slate-100 focus-visible:ring-slate-300;
+    @apply btn border border-slate-300/80 bg-white text-slate-700 shadow-card
+           hover:border-slate-400 hover:bg-slate-50 focus-visible:ring-brand-500/40;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 hover:bg-slate-900/5 hover:text-slate-900 focus-visible:ring-brand-500/30;
   }
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-300 shadow-sm;
+    @apply btn bg-rose-600 text-white shadow-card hover:bg-rose-700 focus-visible:ring-rose-400/50;
   }
   .btn-success {
-    @apply btn bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-300 shadow-sm;
+    @apply btn bg-emerald-600 text-white shadow-card hover:bg-emerald-700 focus-visible:ring-emerald-400/50;
+  }
+  .btn-gold {
+    @apply btn bg-gold-500 text-white shadow-card hover:bg-gold-600 focus-visible:ring-gold-400/50;
   }
   .btn-lg {
-    @apply px-7 py-4 text-lg min-h-[3.5rem] rounded-2xl;
+    @apply px-5 py-3 text-base min-h-[3rem] rounded-xl;
+  }
+  .btn-sm {
+    @apply px-3 py-2 text-[0.85rem] min-h-[2.25rem] gap-1.5;
   }
   .btn-block {
     @apply w-full;
   }
 
-  /* Inputs: tall, large text, strong focus ring. */
+  /* ---- Inputs: calm, structured, clear focus ---- */
   .input {
-    @apply w-full rounded-xl border-2 border-slate-300 bg-white px-4 py-3 text-lg text-slate-900
-           shadow-sm placeholder:text-slate-400
-           focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-200;
+    @apply w-full rounded-lg border border-slate-300/80 bg-white px-3.5 py-2.5 text-[0.95rem] text-slate-900
+           shadow-sm transition-shadow placeholder:text-slate-400
+           focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15;
+  }
+  select.input {
+    @apply cursor-pointer pr-9;
   }
   .label {
-    @apply block text-base font-bold text-slate-800 mb-1.5;
+    @apply mb-1.5 block text-[0.82rem] font-semibold uppercase tracking-wide text-slate-500;
   }
   .help {
-    @apply mt-1.5 text-base text-slate-600;
+    @apply mt-1.5 text-[0.85rem] leading-relaxed text-slate-500;
   }
 
+  /* ---- Surfaces ---- */
   .card {
-    @apply rounded-2xl border-2 border-slate-200 bg-white shadow-sm;
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-card;
+  }
+  .card-pad {
+    @apply card p-5 sm:p-6;
+  }
+  .panel-head {
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-5 py-4 sm:px-6;
   }
 
-  /* Status badges: readable size, strong color. */
+  /* ---- Status badges: refined, calm, dot-led (never cartoonish) ---- */
   .badge {
-    @apply inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-sm font-bold;
+    @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1
+           text-[0.78rem] font-semibold leading-none;
+  }
+  .badge-dot {
+    @apply h-1.5 w-1.5 rounded-full;
   }
   .badge-piutang {
-    @apply badge bg-amber-100 text-amber-800 ring-1 ring-amber-300;
+    @apply badge bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200;
   }
   .badge-lunas {
-    @apply badge bg-emerald-100 text-emerald-800 ring-1 ring-emerald-300;
+    @apply badge bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200;
   }
   .badge-bonus {
-    @apply badge bg-purple-100 text-purple-800 ring-1 ring-purple-300;
+    @apply badge bg-gold-50 text-gold-700 ring-1 ring-inset ring-gold-200;
+  }
+  .badge-neutral {
+    @apply badge bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-200;
+  }
+  .badge-lm {
+    @apply badge bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-200;
+  }
+  .badge-br {
+    @apply badge bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200;
   }
 
-  /* Tables: bigger, higher-contrast text (no tiny gray). */
+  /* ---- Tables: premium hierarchy, readable rows, tabular figures ---- */
   .table-th {
-    @apply px-4 py-3 text-left text-sm font-bold uppercase tracking-wide text-slate-600;
+    @apply px-4 py-3 text-left text-[0.74rem] font-semibold uppercase tracking-[0.06em] text-slate-400;
   }
   .table-td {
-    @apply px-4 py-3.5 text-base text-slate-800;
+    @apply px-4 py-3.5 text-[0.92rem] text-slate-700 align-middle;
+  }
+  .num {
+    @apply tnum text-right;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

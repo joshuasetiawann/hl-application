@@ -6,6 +6,7 @@ import { apiSend } from "@/lib/client";
 import { toDateInputValue } from "@/lib/format";
 import Modal from "@/components/Modal";
 import { useToast } from "@/components/Toast";
+import { Icon } from "@/components/icons";
 
 /**
  * Settlement button + payment-date modal. Works for both:
@@ -69,11 +70,11 @@ export default function SettleButton({
         className={`${variant === "primary" ? "btn-primary" : "btn-success"} ${size}`}
         onClick={() => setOpen(true)}
       >
-        ✓ {label}
+        <Icon name="check" size={17} /> {label}
       </button>
 
       <Modal open={open} onClose={() => !loading && setOpen(false)} title={title}>
-        {description && <p className="mb-4 text-lg text-slate-700">{description}</p>}
+        {description && <p className="mb-4 text-[0.95rem] leading-relaxed text-slate-600">{description}</p>}
         <label className="label">Tanggal Pelunasan</label>
         <input
           type="date"
@@ -82,16 +83,16 @@ export default function SettleButton({
           onChange={(e) => setDate(e.target.value)}
         />
         {error && (
-          <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-base font-medium text-red-700">
-            ⚠ {error}
+          <p className="mt-2 flex items-center gap-2 rounded-lg bg-rose-50 px-3 py-2 text-[0.9rem] font-medium text-rose-700">
+            <Icon name="alert" size={16} /> {error}
           </p>
         )}
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button className="btn-secondary" onClick={() => setOpen(false)} disabled={loading}>
             Batal
           </button>
           <button className="btn-success" onClick={confirm} disabled={loading}>
-            {loading ? "Memproses..." : confirmLabel}
+            {loading ? "Memproses…" : confirmLabel}
           </button>
         </div>
       </Modal>

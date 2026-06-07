@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Icon } from "@/components/icons";
 
 export default function SearchField({
   paramKey = "q",
@@ -29,8 +30,8 @@ export default function SearchField({
 
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xl text-slate-400">
-        🔍
+      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+        <Icon name="search" size={18} />
       </span>
       <input
         className="input pl-10"

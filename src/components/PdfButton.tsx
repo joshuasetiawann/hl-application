@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useToast } from "@/components/Toast";
+import { Icon } from "@/components/icons";
 
 type State = "idle" | "loading" | "success" | "error";
 
 /**
  * Downloads a PDF from `url` with clear UI states:
- * idle → "Menyiapkan PDF..." → success toast / error toast.
+ * idle → "Menyiapkan PDF…" → success toast / error toast.
  * Opens the generated PDF in a new tab on success.
  */
 export default function PdfButton({
@@ -46,18 +47,30 @@ export default function PdfButton({
     <button onClick={onClick} className={base} disabled={state === "loading"} aria-busy={state === "loading"}>
       {state === "loading" && (
         <>
-          <Spinner /> Menyiapkan PDF...
+          <Spinner /> Menyiapkan PDF…
         </>
       )}
-      {state === "success" && <>✓ PDF siap</>}
-      {state === "error" && <>⚠ Coba lagi</>}
-      {state === "idle" && <>🖨 {label}</>}
+      {state === "success" && (
+        <>
+          <Icon name="check" size={18} /> PDF siap
+        </>
+      )}
+      {state === "error" && (
+        <>
+          <Icon name="alert" size={18} /> Coba lagi
+        </>
+      )}
+      {state === "idle" && (
+        <>
+          <Icon name="printer" size={18} /> {label}
+        </>
+      )}
     </button>
   );
 }
 
 function Spinner() {
   return (
-    <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent opacity-70" />
   );
 }

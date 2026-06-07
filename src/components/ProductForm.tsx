@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, ErrorText } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import { apiSend } from "@/lib/client";
 
 export interface ProductFormData {
@@ -54,7 +55,7 @@ export default function ProductForm({ initial }: { initial?: ProductFormData }) 
   }
 
   return (
-    <Card className="p-6">
+    <Card className="p-5 sm:p-6">
       <form onSubmit={onSubmit} className="max-w-lg space-y-4">
         <div>
           <label className="label">Nama Produk *</label>
@@ -90,19 +91,23 @@ export default function ProductForm({ initial }: { initial?: ProductFormData }) 
             onChange={(e) => setHargaModal(e.target.value)}
             required
           />
-          <p className="mt-1 text-xs text-slate-500">
-            Internal — hanya untuk perhitungan Laba HL.
-          </p>
+          <p className="help">Internal — hanya untuk perhitungan Laba HL.</p>
         </div>
 
         {error && <ErrorText>{error}</ErrorText>}
 
-        <div className="flex gap-2">
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? "Menyimpan..." : "Simpan"}
-          </button>
-          <button type="button" className="btn-secondary" onClick={() => router.back()}>
+        <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row">
+          <button type="button" className="btn-secondary btn-lg" onClick={() => router.back()}>
             Batal
+          </button>
+          <button type="submit" className="btn-primary btn-lg" disabled={loading}>
+            {loading ? (
+              "Menyimpan…"
+            ) : (
+              <>
+                <Icon name="check" size={18} /> Simpan
+              </>
+            )}
           </button>
         </div>
       </form>

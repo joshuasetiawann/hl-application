@@ -39,6 +39,36 @@ npm run dev          # development at http://localhost:3000
 npm run build && npm run start   # production
 ```
 
+## Easiest way to run — one folder (`ops/`)
+
+For non-technical operators there is a dedicated **`ops/`** folder with double-click
+scripts for Windows and Linux/macOS. They check tools, create `.env`, install
+dependencies, run safe migrations, build, start the server, write logs, and store the
+PID — all automatically.
+
+```bash
+# Linux / macOS (first time: chmod +x ops/linux/*.sh ops/doctor.sh run-linux.sh stop-linux.sh)
+./run-linux.sh        # start    ->  http://localhost:3000
+./stop-linux.sh       # stop
+```
+```bat
+:: Windows (double-click or run from terminal)
+run-windows.bat       :: start
+stop-windows.bat      :: stop
+```
+
+Full operator guide: **[`ops/README_RUN.md`](ops/README_RUN.md)** (run, stop, restart,
+check-health, show-status, change password, logs, troubleshooting).
+
+- **Health check:** `GET /api/health` returns `{ status, db }` (also `npm run health`).
+- **Change admin password (safe, hashed):** `ops/linux/edit-password.sh` /
+  `ops\windows\edit-password.bat` (or `npm run set-password`). Never stores plaintext.
+- **Diagnose problems (incl. SIGBUS):** `ops/doctor.sh` / `ops\doctor.bat`.
+
+> **SIGBUS / "build worker exited" on Linux/macOS** is almost always caused by running
+> the project from a non-native filesystem (NTFS/exFAT/external/network drive). Move the
+> project into your `$HOME` (e.g. `~/HL-Project`) and run again. `ops/doctor.sh` detects this.
+
 ## Environment variables (`.env`)
 
 | Variable         | Description                                              |
@@ -51,12 +81,15 @@ npm run build && npm run start   # production
 ## Login / Admin account
 
 The app is **single-user with no public registration**. The one account is created/updated
-by the seed script from `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
+by the seed script from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `.env`. The login page does
+**not** display any credential hints.
 
-Default dev credentials (change for production): **`admin` / `admin123`**.
-
-To change the password later, update `.env` and re-run `npm run db:seed` (idempotent — it
-upserts the admin and removes any other users).
+- First run seeds the admin from `.env` (`ADMIN_USERNAME`, default `admin`; `ADMIN_PASSWORD`).
+  When `.env` is created from `.env.example`, set a real `ADMIN_PASSWORD` before first run, or
+  change it afterwards with the tool below.
+- **Change the password later (recommended):** run `ops/linux/edit-password.sh` /
+  `ops\windows\edit-password.bat` (or `npm run set-password`). It prompts with hidden input,
+  stores a bcrypt hash in the database, and never writes plaintext. No restart needed.
 
 ## Scripts
 
@@ -69,6 +102,8 @@ upserts the admin and removes any other users).
 | `npm run test`     | Vitest unit tests (calculation reference)     |
 | `npm run setup`    | migrate deploy + generate + seed              |
 | `npm run db:seed`  | (Re)seed admin user                           |
+| `npm run set-password` | Change the admin password securely (bcrypt) |
+| `npm run health`   | Ping `/api/health` and print OK/WARNING/ERROR |
 
 ## Domain glossary
 
