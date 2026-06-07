@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Card, EmptyState } from "@/components/ui";
+import { Card, EmptyState, PageHeader } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import SearchField from "@/components/SearchField";
 import FilterSelect from "@/components/FilterSelect";
 import DeleteButton from "@/components/DeleteButton";
@@ -37,12 +38,15 @@ export default async function CustomersPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-extrabold">Pelanggan</h1>
-        <Link href="/customers/new" className="btn-primary btn-lg">
-          + Tambah Pelanggan
-        </Link>
-      </div>
+      <PageHeader
+        title="Pelanggan"
+        subtitle="Kelola pelanggan beserta diskon bertingkat LM & BR."
+        actions={
+          <Link href="/customers/new" className="btn-primary">
+            <Icon name="plus" size={18} /> Tambah Pelanggan
+          </Link>
+        }
+      />
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -70,9 +74,9 @@ export default async function CustomersPage({
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[44rem]">
               <thead>
-                <tr className="border-b-2 border-slate-200">
+                <tr className="border-b border-slate-200/70">
                   <th className="table-th">Nama Pelanggan</th>
                   <th className="table-th">Diskon LM</th>
                   <th className="table-th">Diskon BR</th>
@@ -83,18 +87,16 @@ export default async function CustomersPage({
               </thead>
               <tbody>
                 {rows.map((c) => (
-                  <tr key={c.id} className="border-b border-slate-100 hover:bg-amber-50/50">
+                  <tr key={c.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70">
                     <td className="table-td font-semibold">
-                      <Link href={`/customers/${c.id}`} className="text-brand-700 hover:underline">
+                      <Link href={`/customers/${c.id}`} className="text-brand-700 hover:text-brand-800 hover:underline">
                         {c.nama}
                       </Link>
-                      {c.deletedAt && (
-                        <span className="ml-2 badge bg-red-100 text-red-700">Dihapus</span>
-                      )}
+                      {c.deletedAt && <span className="ml-2 badge-neutral">Dihapus</span>}
                     </td>
                     <td className="table-td">{formatDiscountSteps(parseDiscountArray(c.lmDiscounts))}</td>
                     <td className="table-td">{formatDiscountSteps(parseDiscountArray(c.brDiscounts))}</td>
-                    <td className="table-td text-right">
+                    <td className="table-td num">
                       {c.bonusThreshold > 0 ? formatIDR(c.bonusThreshold) : "—"}
                     </td>
                     <td className="table-td text-right">
@@ -106,8 +108,8 @@ export default async function CustomersPage({
                     </td>
                     <td className="table-td">
                       <div className="flex flex-wrap justify-end gap-2">
-                        <Link href={`/customers/${c.id}`} className="btn-secondary">👁 Lihat</Link>
-                        <Link href={`/customers/${c.id}/edit`} className="btn-secondary">✏️ Edit</Link>
+                        <Link href={`/customers/${c.id}`} className="btn-secondary btn-sm"><Icon name="eye" size={16} /> Lihat</Link>
+                        <Link href={`/customers/${c.id}/edit`} className="btn-secondary btn-sm"><Icon name="edit" size={16} /> Edit</Link>
                         {!c.deletedAt && (
                           <DeleteButton
                             url={`/api/customers/${c.id}`}

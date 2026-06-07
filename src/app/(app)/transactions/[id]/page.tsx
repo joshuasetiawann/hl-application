@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Card, StatusBadge, TypeBadge } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import SettleButton from "@/components/SettleButton";
 import DeleteButton from "@/components/DeleteButton";
 import PdfButton from "@/components/PdfButton";
@@ -28,10 +29,13 @@ export default async function TransactionDetailPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/transactions" className="text-lg font-semibold text-brand-700 hover:underline">
-            ← Kembali ke Daftar Bon
+          <Link
+            href="/transactions"
+            className="inline-flex items-center gap-1.5 text-[0.85rem] font-semibold text-slate-500 hover:text-brand-700"
+          >
+            <Icon name="arrowLeft" size={16} /> Kembali ke Daftar Bon
           </Link>
-          <h1 className="mt-1 flex flex-wrap items-center gap-3 text-3xl font-extrabold">
+          <h1 className="mt-1.5 flex flex-wrap items-center gap-2.5 text-2xl font-bold tracking-tight sm:text-[1.7rem]">
             Bon {txn.nomorBon}
             <StatusBadge status={txn.status} isBonus={txn.isBonus} />
           </h1>
@@ -47,7 +51,7 @@ export default async function TransactionDetailPage({
             />
           )}
           <Link href={`/transactions/${txn.id}/edit`} className="btn-secondary">
-            ✏️ Edit
+            <Icon name="edit" size={17} /> Edit
           </Link>
           <DeleteButton
             url={`/api/transactions/${txn.id}`}
@@ -60,8 +64,13 @@ export default async function TransactionDetailPage({
 
       {/* Payment status banner */}
       {isPiutang && (
-        <Card className="flex flex-wrap items-center justify-between gap-3 border-amber-300 bg-amber-50 p-5">
-          <div className="text-xl font-bold text-amber-800">⏳ Bon ini belum lunas</div>
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-amber-200 bg-amber-50/70 p-5">
+          <div className="flex items-center gap-3 text-[1.05rem] font-semibold text-amber-800">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+              <Icon name="clock" size={20} />
+            </span>
+            Bon ini belum lunas
+          </div>
           <SettleButton
             url={`/api/transactions/${txn.id}/settle`}
             label="Tandai Sudah Lunas"
@@ -71,20 +80,28 @@ export default async function TransactionDetailPage({
         </Card>
       )}
       {isLunas && (
-        <Card className="border-emerald-300 bg-emerald-50 p-5">
-          <div className="text-xl font-bold text-emerald-800">
-            ✓ Bon sudah lunas pada {formatDate(txn.paymentDate)}
+        <Card className="flex items-center gap-3 border-emerald-200 bg-emerald-50/70 p-5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+            <Icon name="checkCircle" size={20} />
+          </span>
+          <div className="text-[1.05rem] font-semibold text-emerald-800">
+            Bon sudah lunas pada {formatDate(txn.paymentDate)}
           </div>
         </Card>
       )}
       {txn.isBonus && (
-        <Card className="border-purple-300 bg-purple-50 p-5">
-          <div className="text-xl font-bold text-purple-800">
-            🎁 Bon Bonus — produk gratis, {txn.bonusUnitsGranted} bonus dipakai
+        <Card className="flex items-start gap-3 border-gold-200 bg-gold-50/60 p-5">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-100 text-gold-700">
+            <Icon name="gift" size={20} />
+          </span>
+          <div>
+            <div className="text-[1.05rem] font-semibold text-gold-800">
+              Bon Bonus — produk gratis, {txn.bonusUnitsGranted} bonus dipakai
+            </div>
+            <p className="mt-0.5 text-[0.92rem] text-gold-700/90">
+              Tidak dihitung sebagai omzet, piutang, atau laba.
+            </p>
           </div>
-          <p className="mt-1 text-lg text-purple-700">
-            Tidak dihitung sebagai omzet, piutang, atau laba.
-          </p>
         </Card>
       )}
 
@@ -104,13 +121,13 @@ export default async function TransactionDetailPage({
 
       {/* Line table */}
       <Card>
-        <div className="border-b-2 border-slate-200 px-5 py-4">
-          <h2 className="text-xl font-bold">Detail Produk</h2>
+        <div className="panel-head">
+          <h2 className="text-base font-semibold text-slate-900">Detail Produk</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[40rem]">
             <thead>
-              <tr className="border-b-2 border-slate-200">
+              <tr className="border-b border-slate-200/70">
                 <th className="table-th">Produk</th>
                 <th className="table-th">Tipe</th>
                 <th className="table-th">Diskon</th>
@@ -121,17 +138,17 @@ export default async function TransactionDetailPage({
             </thead>
             <tbody>
               {txn.lines.map((l) => (
-                <tr key={l.id} className="border-b border-slate-100">
-                  <td className="table-td font-semibold">{l.productNameSnapshot}</td>
+                <tr key={l.id} className="border-b border-slate-100 last:border-0">
+                  <td className="table-td font-semibold text-slate-900">{l.productNameSnapshot}</td>
                   <td className="table-td">
                     <TypeBadge tipe={l.productTypeSnapshot} />
                   </td>
                   <td className="table-td text-slate-500">
                     {formatDiscountSteps(parseDiscountArray(l.discountStepsSnapshot))}
                   </td>
-                  <td className="table-td text-right">{formatIDR(l.discountedUnitPriceSnapshot)}</td>
-                  <td className="table-td text-right">{l.quantity}</td>
-                  <td className="table-td text-right font-semibold">
+                  <td className="table-td num">{formatIDR(l.discountedUnitPriceSnapshot)}</td>
+                  <td className="table-td num">{l.quantity}</td>
+                  <td className="table-td num font-semibold text-slate-900">
                     {formatIDR(txn.isBonus ? 0 : l.lineOmzetSnapshot)}
                   </td>
                 </tr>
@@ -142,16 +159,16 @@ export default async function TransactionDetailPage({
       </Card>
 
       {/* Summary */}
-      <Card className="p-6">
-        <h3 className="mb-4 text-xl font-bold">Ringkasan</h3>
-        <dl className="grid grid-cols-1 gap-3 text-lg sm:grid-cols-2">
+      <Card className="p-5 sm:p-6">
+        <h3 className="mb-4 text-base font-semibold text-slate-900">Ringkasan</h3>
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
           <Row label="Omzet (tanpa ongkir)" value={formatIDR(txn.isBonus ? 0 : txn.omzetTotal)} />
           <Row label="Ongkir" value={formatIDR(txn.ongkir)} />
           <Row label="Laba HL" value={formatIDR(txn.isBonus ? 0 : txn.profitTotal)} />
-          <div className="rounded-xl bg-brand-600 px-4 py-3 text-white sm:col-span-2">
-            <div className="flex items-center justify-between">
-              <span className="text-lg font-semibold">Total Tagihan</span>
-              <span className="text-3xl font-extrabold">
+          <div className="mt-2 rounded-xl bg-brand-800 px-5 py-4 text-white sm:col-span-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[0.95rem] font-medium text-white/80">Total Tagihan</span>
+              <span className="text-2xl font-bold tracking-tight tnum sm:text-3xl">
                 {formatIDR(txn.isBonus ? 0 : txn.amountOwed)}
               </span>
             </div>

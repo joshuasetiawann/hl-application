@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Card, StatCard, StatusBadge } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import MonthYearSelector from "@/components/MonthYearSelector";
 import SettleButton from "@/components/SettleButton";
 import PdfButton from "@/components/PdfButton";
@@ -56,20 +57,23 @@ export default async function CustomerDetailPage({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/customers" className="text-lg font-semibold text-brand-700 hover:underline">
-            ← Pelanggan
+          <Link
+            href="/customers"
+            className="inline-flex items-center gap-1.5 text-[0.85rem] font-semibold text-slate-500 hover:text-brand-700"
+          >
+            <Icon name="arrowLeft" size={16} /> Pelanggan
           </Link>
-          <h1 className="mt-1 text-3xl font-extrabold">{customer.nama}</h1>
-          {customer.deletedAt && (
-            <span className="badge bg-red-100 text-red-700">Dihapus</span>
-          )}
+          <h1 className="mt-1.5 flex flex-wrap items-center gap-2.5 text-2xl font-bold tracking-tight sm:text-[1.7rem]">
+            {customer.nama}
+            {customer.deletedAt && <span className="badge-neutral">Dihapus</span>}
+          </h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href={`/customers/${customer.id}/edit`} className="btn-secondary">
-            ✏️ Edit Pelanggan
+            <Icon name="edit" size={17} /> Edit Pelanggan
           </Link>
           <Link href={`/transactions/new?customerId=${customer.id}`} className="btn-primary">
-            + Buat Bon Baru
+            <Icon name="plus" size={18} /> Buat Bon Baru
           </Link>
         </div>
       </div>
@@ -88,32 +92,37 @@ export default async function CustomerDetailPage({
             {formatDiscountSteps(parseDiscountArray(customer.brDiscounts))}
           </div>
         </Card>
-        <StatCard label="Batas Bonus" value={threshold > 0 ? formatIDR(threshold) : "—"} icon="🎯" />
+        <StatCard label="Batas Bonus" value={threshold > 0 ? formatIDR(threshold) : "—"} icon="target" />
         <StatCard
           label="Bonus Tersedia"
           value={String(bonus.bonusesAvailable)}
-          accent={bonus.bonusesAvailable > 0 ? "purple" : "slate"}
-          icon="🎁"
+          accent={bonus.bonusesAvailable > 0 ? "gold" : "slate"}
+          icon="gift"
           hint={threshold > 0 ? `Sisa ${formatIDR(sisaOmzet)} ke bonus berikutnya` : "Program bonus nonaktif"}
         />
       </div>
 
       {/* Bonus highlight */}
       {bonus.enabled && bonus.bonusesAvailable > 0 && (
-        <Card className="flex flex-wrap items-center justify-between gap-3 border-purple-300 bg-purple-50 p-5">
-          <div className="text-xl font-bold text-purple-800">
-            🎁 Pelanggan ini punya {bonus.bonusesAvailable} bonus tersedia
+        <Card className="flex flex-wrap items-center justify-between gap-3 border-gold-200 bg-gold-50/60 p-5">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-100 text-gold-700">
+              <Icon name="gift" size={20} />
+            </span>
+            <div className="text-[1.05rem] font-semibold text-gold-800">
+              Pelanggan ini punya {bonus.bonusesAvailable} bonus tersedia
+            </div>
           </div>
-          <Link href={`/transactions/new?customerId=${customer.id}&bonus=1`} className="btn-primary">
-            🎁 Buat Bon Bonus
+          <Link href={`/transactions/new?customerId=${customer.id}&bonus=1`} className="btn-gold">
+            <Icon name="gift" size={17} /> Buat Bon Bonus
           </Link>
         </Card>
       )}
 
       {/* Activity */}
       <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-slate-200 px-5 py-4">
-          <h2 className="text-xl font-bold">
+        <div className="panel-head">
+          <h2 className="text-base font-semibold text-slate-900">
             Aktivitas — {monthLabel(month)} {year}
           </h2>
           <div className="flex flex-wrap items-center gap-2">
@@ -137,7 +146,7 @@ export default async function CustomerDetailPage({
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b-2 border-slate-200">
+              <tr className="border-b border-slate-200/70">
                 <th className="table-th">Tanggal</th>
                 <th className="table-th">Nomor Bon</th>
                 <th className="table-th">Status</th>
@@ -149,7 +158,7 @@ export default async function CustomerDetailPage({
             <tbody>
               {txns.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-10 text-center text-lg text-slate-400">
+                  <td colSpan={6} className="px-4 py-10 text-center text-[0.95rem] text-slate-400">
                     Tidak ada aktivitas pada bulan ini.
                   </td>
                 </tr>
@@ -157,24 +166,24 @@ export default async function CustomerDetailPage({
               {txns.map((t) => (
                 <tr
                   key={t.id}
-                  className={`border-b border-slate-100 hover:bg-amber-50/50 ${
-                    t.status === "LUNAS" && !t.isBonus ? "bg-emerald-50/50" : ""
+                  className={`border-b border-slate-100 last:border-0 hover:bg-slate-50/70 ${
+                    t.status === "LUNAS" && !t.isBonus ? "bg-emerald-50/40" : ""
                   }`}
                 >
-                  <td className="table-td">{formatDate(t.tanggal)}</td>
-                  <td className="table-td font-semibold">{t.nomorBon}</td>
+                  <td className="table-td whitespace-nowrap text-slate-500">{formatDate(t.tanggal)}</td>
+                  <td className="table-td font-semibold text-slate-900">{t.nomorBon}</td>
                   <td className="table-td">
                     <StatusBadge status={t.status} isBonus={t.isBonus} />
                   </td>
-                  <td className="table-td text-right font-bold">
+                  <td className="table-td num font-semibold text-slate-900">
                     {formatIDR(t.isBonus ? 0 : t.amountOwed)}
                   </td>
-                  <td className="table-td text-right">
+                  <td className="table-td num text-slate-500">
                     {t.paymentDate ? formatDate(t.paymentDate) : "—"}
                   </td>
                   <td className="table-td text-right">
-                    <Link href={`/transactions/${t.id}`} className="btn-secondary">
-                      👁 Lihat
+                    <Link href={`/transactions/${t.id}`} className="btn-secondary btn-sm">
+                      <Icon name="eye" size={16} /> Lihat
                     </Link>
                   </td>
                 </tr>
@@ -185,12 +194,12 @@ export default async function CustomerDetailPage({
       </Card>
 
       {/* Monthly summary */}
-      <h2 className="text-xl font-bold">Ringkasan Bulan Ini</h2>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard label="Total Piutang" value={formatIDR(recap.totalOutstandingPiutang)} accent="red" icon="💳" />
-        <StatCard label="Total Sudah Dibayar" value={formatIDR(recap.totalPaid)} accent="green" icon="✓" />
-        <StatCard label="Omzet Lunas" value={formatIDR(recap.recognizedOmzet)} accent="blue" icon="📈" hint="Tidak termasuk ongkir" />
-        <StatCard label="Laba HL" value={formatIDR(recap.recognizedProfit)} accent="blue" icon="💰" />
+      <h2 className="text-base font-semibold text-slate-900">Ringkasan Bulan Ini</h2>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+        <StatCard label="Total Piutang" value={formatIDR(recap.totalOutstandingPiutang)} accent="red" icon="wallet" />
+        <StatCard label="Total Sudah Dibayar" value={formatIDR(recap.totalPaid)} accent="green" icon="checkCircle" />
+        <StatCard label="Omzet Lunas" value={formatIDR(recap.recognizedOmzet)} accent="blue" icon="trendingUp" hint="Tidak termasuk ongkir" />
+        <StatCard label="Laba HL" value={formatIDR(recap.recognizedProfit)} accent="blue" icon="coins" />
         <StatCard label="Omzet LM" value={formatIDR(recap.omzetLM)} />
         <StatCard label="Omzet BR" value={formatIDR(recap.omzetBR)} />
       </div>

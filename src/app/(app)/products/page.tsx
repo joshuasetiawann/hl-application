@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Card, TypeBadge } from "@/components/ui";
+import { Card, TypeBadge, PageHeader } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import SearchField from "@/components/SearchField";
 import FilterSelect from "@/components/FilterSelect";
 import { formatIDR } from "@/lib/format";
@@ -26,12 +27,15 @@ export default async function ProductsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-extrabold">Produk</h1>
-        <Link href="/products/new" className="btn-primary btn-lg">
-          + Tambah Produk
-        </Link>
-      </div>
+      <PageHeader
+        title="Produk"
+        subtitle="Daftar produk LM & BR beserta harga jual dan harga modal."
+        actions={
+          <Link href="/products/new" className="btn-primary">
+            <Icon name="plus" size={18} /> Tambah Produk
+          </Link>
+        }
+      />
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center gap-3">
@@ -52,9 +56,9 @@ export default async function ProductsPage({
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[40rem]">
             <thead>
-              <tr className="border-b border-slate-200">
+              <tr className="border-b border-slate-200/70">
                 <th className="table-th">Nama</th>
                 <th className="table-th">Tipe</th>
                 <th className="table-th text-right">Harga Base / Jual</th>
@@ -65,26 +69,26 @@ export default async function ProductsPage({
             <tbody>
               {products.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-sm text-slate-400">
+                  <td colSpan={5} className="px-4 py-8 text-center text-[0.9rem] text-slate-400">
                     Belum ada produk.
                   </td>
                 </tr>
               )}
               {products.map((p) => (
-                <tr key={p.id} className="border-b border-slate-50 hover:bg-slate-50">
-                  <td className="table-td font-medium">{p.nama}</td>
+                <tr key={p.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70">
+                  <td className="table-td font-semibold text-slate-900">{p.nama}</td>
                   <td className="table-td">
                     <TypeBadge tipe={p.tipe} />
                   </td>
-                  <td className="table-td text-right font-semibold">{formatIDR(p.hargaBase)}</td>
-                  <td className="table-td text-right">
+                  <td className="table-td num font-semibold text-slate-900">{formatIDR(p.hargaBase)}</td>
+                  <td className="table-td num">
                     <span className="text-slate-600">{formatIDR(p.hargaModal)}</span>
-                    <span className="ml-2 badge bg-slate-100 text-slate-500">Internal</span>
+                    <span className="ml-2 badge-neutral">Internal</span>
                   </td>
                   <td className="table-td">
                     <div className="flex justify-end gap-2">
-                      <Link href={`/products/${p.id}/edit`} className="btn-secondary">
-                        ✏️ Edit
+                      <Link href={`/products/${p.id}/edit`} className="btn-secondary btn-sm">
+                        <Icon name="edit" size={16} /> Edit
                       </Link>
                       <DeleteButton
                         url={`/api/products/${p.id}`}
@@ -98,7 +102,7 @@ export default async function ProductsPage({
             </tbody>
           </table>
         </div>
-        <p className="px-4 py-2 text-xs text-slate-400">
+        <p className="border-t border-slate-100 px-4 py-2.5 text-[0.8rem] text-slate-400">
           Harga Modal hanya dipakai untuk perhitungan Laba HL (internal).
         </p>
       </Card>

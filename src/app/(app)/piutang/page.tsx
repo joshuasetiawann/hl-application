@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { Card, StatCard, EmptyState } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import MonthYearSelector from "@/components/MonthYearSelector";
 import FilterSelect from "@/components/FilterSelect";
 import PdfButton from "@/components/PdfButton";
@@ -48,10 +49,12 @@ export default async function PiutangPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-extrabold">Daftar Piutang</h1>
-          <p className="mt-1 text-lg text-slate-600">Bon yang belum dibayar.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[1.7rem]">
+            Daftar Piutang
+          </h1>
+          <p className="mt-1 text-[0.95rem] text-slate-500">Bon yang belum dibayar.</p>
         </div>
         <PdfButton url={`/api/pdf/piutang?${pdfQuery}`} label="Download PDF" />
       </div>
@@ -70,18 +73,22 @@ export default async function PiutangPage({
         label="Total Piutang (sesuai filter)"
         value={formatIDR(total)}
         accent="red"
-        icon="💳"
+        icon="wallet"
         hint={`${txns.length} bon belum lunas`}
       />
 
       <Card>
         {txns.length === 0 ? (
-          <EmptyState title="Tidak ada piutang" message="Semua bon pada periode ini sudah lunas. 🎉" />
+          <EmptyState
+            icon="checkCircle"
+            title="Tidak ada piutang"
+            message="Semua bon pada periode ini sudah lunas."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[40rem]">
               <thead>
-                <tr className="border-b-2 border-slate-200">
+                <tr className="border-b border-slate-200/70">
                   <th className="table-th">Tanggal</th>
                   <th className="table-th">Nomor Bon</th>
                   <th className="table-th">Pelanggan</th>
@@ -93,17 +100,17 @@ export default async function PiutangPage({
               </thead>
               <tbody>
                 {txns.map((t) => (
-                  <tr key={t.id} className="border-b border-slate-100 hover:bg-amber-50/50">
-                    <td className="table-td">{formatDate(t.tanggal)}</td>
-                    <td className="table-td font-semibold">{t.nomorBon}</td>
+                  <tr key={t.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70">
+                    <td className="table-td whitespace-nowrap text-slate-500">{formatDate(t.tanggal)}</td>
+                    <td className="table-td font-semibold text-slate-900">{t.nomorBon}</td>
                     <td className="table-td">{t.customer.nama}</td>
-                    <td className="table-td text-right">{formatIDR(t.omzetTotal)}</td>
-                    <td className="table-td text-right">{formatIDR(t.ongkir)}</td>
-                    <td className="table-td text-right font-bold">{formatIDR(t.amountOwed)}</td>
+                    <td className="table-td num">{formatIDR(t.omzetTotal)}</td>
+                    <td className="table-td num text-slate-500">{formatIDR(t.ongkir)}</td>
+                    <td className="table-td num font-semibold text-slate-900">{formatIDR(t.amountOwed)}</td>
                     <td className="table-td">
                       <div className="flex justify-end gap-2">
-                        <Link href={`/transactions/${t.id}`} className="btn-secondary">
-                          👁 Lihat
+                        <Link href={`/transactions/${t.id}`} className="btn-secondary btn-sm">
+                          <Icon name="eye" size={16} /> Lihat
                         </Link>
                         <SettleButton
                           url={`/api/transactions/${t.id}/settle`}

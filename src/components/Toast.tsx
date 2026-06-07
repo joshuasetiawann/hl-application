@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { Icon, type IconName } from "@/components/icons";
 
 type ToastKind = "success" | "error" | "info";
 interface Toast {
@@ -26,14 +27,19 @@ export function useToast() {
 }
 
 const STYLES: Record<ToastKind, string> = {
-  success: "bg-emerald-600",
-  error: "bg-red-600",
-  info: "bg-slate-800",
+  success: "bg-white text-slate-800 ring-emerald-200",
+  error: "bg-white text-slate-800 ring-rose-200",
+  info: "bg-white text-slate-800 ring-slate-200",
 };
-const ICONS: Record<ToastKind, string> = {
-  success: "✓",
-  error: "⚠",
-  info: "ℹ",
+const ICON_WRAP: Record<ToastKind, string> = {
+  success: "bg-emerald-50 text-emerald-600",
+  error: "bg-rose-50 text-rose-600",
+  info: "bg-brand-50 text-brand-600",
+};
+const ICONS: Record<ToastKind, IconName> = {
+  success: "checkCircle",
+  error: "alert",
+  info: "info",
 };
 
 export default function ToastProvider({ children }: { children: ReactNode }) {
@@ -50,14 +56,16 @@ export default function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col gap-3">
+      <div className="pointer-events-none fixed inset-x-4 bottom-4 z-[100] flex flex-col items-center gap-2.5 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:items-end">
         {toasts.map((t) => (
           <div
             key={t.id}
             role="status"
-            className={`flex items-center gap-3 rounded-2xl px-5 py-4 text-lg font-semibold text-white shadow-lg ${STYLES[t.kind]}`}
+            className={`pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-xl px-4 py-3 text-[0.92rem] font-medium shadow-elevated ring-1 ${STYLES[t.kind]}`}
           >
-            <span className="text-2xl">{ICONS[t.kind]}</span>
+            <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${ICON_WRAP[t.kind]}`}>
+              <Icon name={ICONS[t.kind]} size={17} />
+            </span>
             <span>{t.message}</span>
           </div>
         ))}

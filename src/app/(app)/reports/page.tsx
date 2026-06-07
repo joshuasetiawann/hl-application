@@ -79,9 +79,9 @@ export default async function ReportsPage({
         <h2 className="mb-3 text-lg font-semibold">Rekap per Pelanggan</h2>
         <Card>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[48rem]">
               <thead>
-                <tr className="border-b border-slate-200">
+                <tr className="border-b border-slate-200/70">
                   <th className="table-th">Pelanggan</th>
                   <th className="table-th text-right">Omzet (Lunas)</th>
                   <th className="table-th text-right">Laba HL</th>

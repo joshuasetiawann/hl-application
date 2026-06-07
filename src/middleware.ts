@@ -5,7 +5,7 @@ const COOKIE_NAME = "hl_session";
 
 // Paths that do NOT require authentication.
 const PUBLIC_PATHS = ["/login"];
-const PUBLIC_API_PATHS = ["/api/auth/login"];
+const PUBLIC_API_PATHS = ["/api/auth/login", "/api/health"];
 
 function getSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET ?? "";

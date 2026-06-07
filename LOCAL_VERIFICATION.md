@@ -1,70 +1,145 @@
-# Local Verification — HL Sales & Receivables Management App
+# Local Verification
 
-Verified on the development container before pushing.
+Verification of the premium UI/UX upgrade, runtime hardening, and the `ops/` tooling.
 
-## Local URL
-- App: **http://localhost:3000**
-- Login page: http://localhost:3000/login
+- **Local URL:** http://localhost:3000
+- **Health endpoint:** http://localhost:3000/api/health → `{"status":"ok","db":"ok",...}`
+- **Environment used for verification:** Linux, Node v22.22.2, npm 10.9.7, filesystem ext4.
 
-## Admin / demo login
-- Username: **admin**
-- Password: **admin123**
-- Credentials come from `ADMIN_USERNAME` / `ADMIN_PASSWORD` (see `.env.example`) and are
-  seeded (bcrypt-hashed) by `prisma/seed.ts`. Change them for any real use.
+---
 
-## How to run locally
-```bash
-npm install
-cp .env.example .env          # then set AUTH_SECRET (and admin creds if desired)
-npm run setup                 # prisma migrate deploy + generate + seed (SQLite dev.db)
-npm run dev                   # http://localhost:3000
+## 1. What was changed
+
+### UI/UX (premium redesign)
+- New design system: refined navy **`brand`** palette + restrained **`gold`** accent
+  (`tailwind.config.ts`), premium tokens for buttons/inputs/cards/tables/badges and a warm
+  neutral canvas, tabular figures (`src/app/globals.css`).
+- Removed **all emoji** across the app; added a dependency-free line-icon set
+  (`src/components/icons.tsx`).
+- Executive `StatCard`, calm dot-style status badges, refined empty/error states, new
+  `PageHeader` (`src/components/ui.tsx`).
+- Premium **responsive sidebar** with off-canvas drawer + backdrop on mobile/tablet, fixed
+  on desktop (`src/components/Sidebar.tsx`).
+- **Login** redesigned (split brand panel, refined form) and **all demo credential hints
+  removed** (`src/app/login/page.tsx`, `src/app/login/LoginForm.tsx`).
+- Executive **dashboard**, plus polished list/detail/forms (Bon wizard, Pelanggan, Produk,
+  Piutang, Bonus, Rekap), and refined Modal/Toast/PDF/Settle/Delete/Search components.
+- Responsive throughout: KPI grids 4→2→1, tables horizontally safe with min-widths, forms
+  stack on mobile, larger tap targets.
+
+### Runtime stability (SIGBUS / reliability)
+- **Diagnosed SIGBUS** as a non-native-filesystem issue (project on NTFS/exFAT/network
+  drive). `ops/doctor.sh` now detects the filesystem type and warns.
+- `.puppeteerrc.cjs` → skips the ~150 MB Chromium download on `npm install` (Puppeteer is
+  only used by the optional screenshots script) → fast, reliable installs.
+- `engines` (Node `>=18.18 <23`) in `package.json` + `.nvmrc` (`20`).
+- **Health endpoint** `GET /api/health` (DB-aware), public in middleware.
+- Clear env error messages enforced in `src/lib/auth.ts` (AUTH_SECRET length).
+
+### One-folder operations tooling (`ops/`)
+- Windows `.bat` + Linux/macOS `.sh` scripts for run/stop/restart/check-health/show-status/
+  edit-password, plus `doctor`, logs, runtime/PID, and an `.env` template. Root launchers
+  `run-linux.sh` / `stop-linux.sh` / `run-windows.bat` / `stop-windows.bat`.
+- Secure password change: `scripts/set-admin-password.mjs` (hidden input → bcrypt hash →
+  DB; never logs plaintext).
+
+> No user data, DB files, `.env`, or migrations were deleted. No secrets committed.
+
+---
+
+## 2. Commands run & results
+
+| Command | Result |
+| --- | --- |
+| `npm run lint` | ✅ PASS — “No ESLint warnings or errors” |
+| `npm run build` | ✅ PASS — production build, 32 routes incl. `/api/health` |
+| `npm test` (vitest) | ✅ PASS — **38/38 tests** (2 files) |
+| `./run-linux.sh` | ✅ PASS — server up, PID stored, health reached |
+| `ops/linux/check-health.sh` | ✅ PASS — “Status keseluruhan: OK” |
+| `ops/linux/show-status.sh` | ✅ PASS — running; env/build/node OK |
+| `curl /api/health` | ✅ PASS — `{"status":"ok","db":"ok"}` |
+| `POST /api/auth/login` (admin) | ✅ PASS — HTTP 200, `hl_session` cookie set |
+| `ops/linux/stop-server.sh` | ✅ PASS — stopped, port freed |
+| `ops/linux/restart-server.sh` | ✅ PASS — stop + start, health OK (new PID) |
+| `ops/doctor.sh` | ✅ PASS — ext4 detected (no SIGBUS risk); flags example AUTH_SECRET |
+| `npm run set-password` (piped) | ✅ PASS — updated, then restored to seed default |
+| `npm run screenshots` | ⚠️ Not run here — browser download blocked by sandbox network policy (see Known issues). Script is ready; run locally. |
+
+Typecheck is covered by `npm run build` (Next.js runs TypeScript + ESLint during build).
+
+---
+
+## 3. Login credentials
+
+- The single admin account is seeded from **`.env`**: `ADMIN_USERNAME` (default `admin`)
+  and `ADMIN_PASSWORD`.
+- `.env.example` ships a **placeholder** password (`change-me-strong-password`) — not a real
+  secret. Set a real one before first run, or change it any time with **edit-password**.
+- The **login page shows no credential hints** (requirement met).
+
+---
+
+## 4. Scripts created (in `ops/`)
+
 ```
+ops/README_RUN.md
+ops/doctor.sh            ops/doctor.bat
+ops/logs/.gitkeep        ops/runtime/.gitkeep
+ops/templates/.env.example.copy
+ops/linux/_lib.sh
+ops/linux/run-server.sh      ops/windows/run-server.bat
+ops/linux/stop-server.sh     ops/windows/stop-server.bat
+ops/linux/restart-server.sh  ops/windows/restart-server.bat
+ops/linux/check-health.sh    ops/windows/check-health.bat
+ops/linux/show-status.sh     ops/windows/show-status.bat
+ops/linux/edit-password.sh   ops/windows/edit-password.bat
+```
+Root launchers: `run-linux.sh`, `stop-linux.sh`, `run-windows.bat`, `stop-windows.bat`.
+Helper scripts: `scripts/set-admin-password.mjs`, `scripts/health-check.mjs`,
+`scripts/_env.mjs`, `scripts/screenshot.cjs`.
 
-## Commands run & results
-| Command | Purpose | Result |
-| --- | --- | --- |
-| `npm install` | Install deps (npm) | ✅ pass |
-| `npx prisma migrate deploy` | Apply migrations to local SQLite | ✅ pass |
-| `npx tsx prisma/seed.ts` | Seed admin + demo data | ✅ pass |
-| `npm run lint` | ESLint | ✅ pass (no warnings/errors) |
-| `npx vitest run` | Unit + integration tests | ✅ pass (38/38) |
-| `npm run build` | Production build (typecheck + compile) | ✅ pass (compiled successfully) |
-| `npm start` | Production server boot | ✅ serves (login/dashboard/pdf = 200) |
-| `npx prisma validate --schema=prisma/schema.postgres.prisma` | Validate prod Postgres schema | ✅ valid |
+---
 
-Tests cover the critical business rules: cascading discount `[20,20,10]`→`57.6`, discount/type
-validation, Bon defaults to Piutang, duplicate Nomor Bon rejected, ongkir excluded from
-omzet/profit, cash-basis recognition (Lunas only), bonus eligibility (10jt threshold + 25jt
-paid = 2; grant 2 → 5jt carryover), bonus Bon = 0 omzet/owed/profit & excluded from recaps,
-soft-delete hiding with preserved history, single + whole-month settlement, edit recalculation.
+## 5. Screenshots
 
-## Manual verification checklist (run end-to-end against the live server)
-- [x] Unauthenticated API blocked (401) and pages redirect to /login
-- [x] Invalid credentials rejected; valid login works; logout works
-- [x] Beranda/Dashboard loads (Total Piutang, paid bulan ini, Omzet/Laba HL, Bonus Tersedia, Bon terbaru)
-- [x] Pelanggan list/detail/create (LM/BR cascading discounts, threshold, soft-delete, Bonus Tersedia)
-- [x] Produk list/create (LM/BR, Harga Modal marked Internal, invalid type rejected)
-- [x] Create Bon (wizard): defaults Piutang; omzet `57.6×2 = 115.2`; ongkir in tagihan only
-      (`115.2 + 25.000`); Laba HL `(57.6−40)×2 = 35.2`; duplicate Nomor Bon → 409
-- [x] Settle single Bon → Lunas with payment date
-- [x] Bonus eligibility: 25jt paid / 10jt threshold = **2** available
-- [x] Bonus Bon grants 2 → 0 omzet / 0 owed / 0 profit; carryover 5jt; over-grant rejected
-- [x] Settle whole month settles only that customer's Piutang for that month
-- [x] Reports/Recap (overall, per-customer, LM/BR) render with filters
-- [x] PDF export: piutang, transactions, recap (overall + per-customer), single Bon — all return valid `application/pdf`
+- Output folder: **`screenshots/premium-ui/`** (see its `README.md` for the full list).
+- Generate locally:
+  ```bash
+  ./run-linux.sh
+  PUPPETEER_EXECUTABLE_PATH="$(command -v google-chrome || command -v chromium)" npm run screenshots
+  # or: npx puppeteer browsers install chrome && npm run screenshots
+  ```
+- Intended captures: login (desktop + mobile), dashboard (desktop + mobile), Bon list,
+  Buat Bon Baru, customer detail, Rekap/Laporan, Pelanggan, Piutang, Bon detail, Bonus.
 
-Automated end-to-end run result: **33/34 checks passed**. The single non-pass is expected
-behaviour: requesting `/login` while already authenticated returns a 307 redirect to the
-dashboard (verified separately that `/login` returns 200 with the login form when logged out).
+---
 
-## Screenshots
-- Browser automation (Playwright/Chromium) **could not be installed** in this sandbox: the
-  Playwright browser CDN and `apt` are blocked by the environment's outbound network policy,
-  so no PNG screenshots could be captured.
-- As evidence instead, the fully-rendered DOM of each page was saved to
-  `./screenshots/hl-app/*.html` (login, beranda, pelanggan, produk, bon, bon-detail, piutang,
-  bonus, rekap). These are local artifacts (not committed) and reference the dev server's CSS.
+## 6. Known issues / notes
 
-## Known issues
-- No PNG screenshots (browser download blocked by sandbox network policy — see above).
-- Local dev uses SQLite (`dev.db`); production must use PostgreSQL (see `DEPLOYMENT_RESULT.md`).
+- **Screenshots not auto-generated in the cloud environment**: the browser download host is
+  blocked by the sandbox network policy (`host_not_allowed`) and no system Chrome is present.
+  The capture script is wired and verified; run it locally (above).
+- **`AUTH_SECRET`**: `.env.example` ships an example value; `doctor` warns until you replace
+  it with a long random string (e.g. `openssl rand -hex 32`). The app refuses to sign
+  sessions with a too-short secret.
+- **Windows scripts** are syntactically valid and authored to mirror the verified Linux
+  behavior, but were not executed on this Linux verification host.
+- **Production vs dev**: `run-server` defaults to a production build/start for stability. Use
+  `DEV=1 ./run-linux.sh` for the dev server, or `REBUILD=1` to force a fresh build.
+
+---
+
+## 7. How to run / stop / change password again
+
+```bash
+# Run
+./run-linux.sh                 # Windows: run-windows.bat
+# Stop
+./stop-linux.sh                # Windows: stop-windows.bat
+# Restart
+ops/linux/restart-server.sh    # Windows: ops\windows\restart-server.bat
+# Health
+ops/linux/check-health.sh      # or: npm run health
+# Change admin password (hidden input, bcrypt, no restart needed)
+ops/linux/edit-password.sh     # Windows: ops\windows\edit-password.bat
+```

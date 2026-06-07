@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { Card, StatusBadge, EmptyState } from "@/components/ui";
+import { Card, StatusBadge, EmptyState, PageHeader } from "@/components/ui";
+import { Icon } from "@/components/icons";
 import MonthYearSelector from "@/components/MonthYearSelector";
 import FilterSelect from "@/components/FilterSelect";
 import SearchField from "@/components/SearchField";
@@ -72,12 +73,15 @@ export default async function TransactionsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-3xl font-extrabold">Daftar Bon</h1>
-        <Link href="/transactions/new" className="btn-primary btn-lg">
-          + Buat Bon Baru
-        </Link>
-      </div>
+      <PageHeader
+        title="Daftar Bon"
+        subtitle="Semua transaksi penjualan, piutang, pelunasan, dan bonus."
+        actions={
+          <Link href="/transactions/new" className="btn-primary">
+            <Icon name="plus" size={18} /> Buat Bon Baru
+          </Link>
+        }
+      />
 
       {/* Filters */}
       <Card className="p-4">
@@ -91,13 +95,15 @@ export default async function TransactionsPage({
           />
           <SearchField paramKey="q" placeholder="Cari Nomor Bon..." />
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-1.5">
           {TABS.map((t) => (
             <Link
               key={t.key}
               href={tabHref(t.key)}
-              className={`rounded-xl px-4 py-2 text-base font-bold ${
-                status === t.key ? "bg-brand-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              className={`rounded-lg px-3.5 py-2 text-[0.88rem] font-semibold transition-colors ${
+                status === t.key
+                  ? "bg-brand-700 text-white shadow-card"
+                  : "text-slate-600 hover:bg-slate-100"
               }`}
             >
               {t.label}
@@ -115,9 +121,9 @@ export default async function TransactionsPage({
           />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[52rem]">
               <thead>
-                <tr className="border-b-2 border-slate-200">
+                <tr className="border-b border-slate-200/70">
                   <th className="table-th">Tanggal</th>
                   <th className="table-th">Nomor Bon</th>
                   <th className="table-th">Pelanggan</th>
@@ -132,26 +138,31 @@ export default async function TransactionsPage({
                 {txns.map((t) => (
                   <tr
                     key={t.id}
-                    className={`border-b border-slate-100 hover:bg-amber-50/50 ${
-                      t.status === "LUNAS" && !t.isBonus ? "bg-emerald-50/40" : ""
+                    className={`border-b border-slate-100 last:border-0 hover:bg-slate-50/70 ${
+                      t.status === "LUNAS" && !t.isBonus ? "bg-emerald-50/30" : ""
                     }`}
                   >
-                    <td className="table-td">{formatDate(t.tanggal)}</td>
-                    <td className="table-td font-semibold">{t.nomorBon}</td>
+                    <td className="table-td whitespace-nowrap text-slate-500">{formatDate(t.tanggal)}</td>
+                    <td className="table-td">
+                      <Link href={`/transactions/${t.id}`} className="font-semibold text-brand-700 hover:text-brand-800 hover:underline">
+                        {t.nomorBon}
+                      </Link>
+                    </td>
                     <td className="table-td">{t.customer.nama}</td>
                     <td className="table-td">
                       <StatusBadge status={t.status} isBonus={t.isBonus} />
                     </td>
-                    <td className="table-td text-right">{formatIDR(t.isBonus ? 0 : t.omzetTotal)}</td>
-                    <td className="table-td text-right">{formatIDR(t.ongkir)}</td>
-                    <td className="table-td text-right font-bold">{formatIDR(t.isBonus ? 0 : t.amountOwed)}</td>
+                    <td className="table-td num">{formatIDR(t.isBonus ? 0 : t.omzetTotal)}</td>
+                    <td className="table-td num text-slate-500">{formatIDR(t.ongkir)}</td>
+                    <td className="table-td num font-semibold text-slate-900">{formatIDR(t.isBonus ? 0 : t.amountOwed)}</td>
                     <td className="table-td">
                       <div className="flex flex-wrap justify-end gap-2">
-                        <Link href={`/transactions/${t.id}`} className="btn-secondary">👁 Lihat</Link>
+                        <Link href={`/transactions/${t.id}`} className="btn-secondary btn-sm"><Icon name="eye" size={16} /> Lihat</Link>
                         {!t.isBonus && t.status === "PIUTANG" && (
                           <SettleButton
                             url={`/api/transactions/${t.id}/settle`}
                             label="Lunas"
+                            size="btn-sm"
                             description={`Tandai bon ${t.nomorBon} sebagai sudah lunas.`}
                             successMessage="Bon berhasil ditandai Lunas"
                           />
