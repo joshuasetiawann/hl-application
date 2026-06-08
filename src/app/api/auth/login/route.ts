@@ -8,7 +8,10 @@ import {
 } from "@/lib/auth";
 import { handleError } from "@/lib/api";
 
+// Auth + DB route: must run on the Node.js runtime and never be statically
+// collected/prerendered at build time (it reads cookies and the database).
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const loginSchema = z.object({
   username: z.string().min(1),
