@@ -18,13 +18,15 @@ function run(cmd, extraEnv) {
   execSync(cmd, { stdio: "inherit", env: { ...process.env, ...extraEnv } });
 }
 
-// Prefer a DIRECT (non-pooled) connection for DDL; fall back through the common
-// Vercel Postgres / generic variable names.
+// Prefer a DIRECT (non-pooled) connection for DDL (db push); fall back through
+// the common Vercel / Neon variable names. Neon's direct URL is DATABASE_URL_UNPOOLED.
 const dbUrl =
+  process.env.DATABASE_URL_UNPOOLED ||
   process.env.POSTGRES_URL_NON_POOLING ||
   process.env.DATABASE_URL ||
   process.env.POSTGRES_PRISMA_URL ||
   process.env.POSTGRES_URL ||
+  process.env.POSTGRES_URL_NO_SSL ||
   "";
 
 // 1) Always generate the Prisma client.
