@@ -12,7 +12,7 @@ reports with PDF export.
 ## Tech Stack
 
 - **Next.js 14** (App Router) + **TypeScript**
-- **Prisma** ORM + **SQLite** (swap `DATABASE_URL` for Postgres in production if desired)
+- **Prisma** ORM + **PostgreSQL** (local + Vercel; see [`VERCEL_DEPLOY.md`](VERCEL_DEPLOY.md))
 - **Tailwind CSS** for UI
 - **decimal.js** for decimal-safe money math (single source of truth in `src/lib/calc.ts`)
 - **jose** (JWT) + **bcryptjs** for single-user auth
@@ -31,7 +31,7 @@ cp .env.example .env
 
 # 3. Create the database, generate the client, and seed the admin user
 npm run setup
-#   (= prisma migrate deploy + prisma generate + seed)
+#   (= prisma generate + prisma db push + seed) — needs a PostgreSQL DATABASE_URL
 
 # 4. Run
 npm run dev          # development at http://localhost:3000
@@ -73,7 +73,7 @@ check-health, show-status, change password, logs, troubleshooting).
 
 | Variable         | Description                                              |
 | ---------------- | ------------------------------------------------------- |
-| `DATABASE_URL`   | DB connection. Default `file:./dev.db` (SQLite).        |
+| `DATABASE_URL`   | PostgreSQL connection string (local + Vercel).          |
 | `AUTH_SECRET`    | Long random string used to sign session JWTs.           |
 | `ADMIN_USERNAME` | The single admin login username.                        |
 | `ADMIN_PASSWORD` | The single admin login password (hashed on seed).       |

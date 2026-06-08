@@ -46,13 +46,13 @@ if [ ! -d "$ROOT/node_modules" ]; then
   PUPPETEER_SKIP_DOWNLOAD=true "$PM" install || die "Gagal memasang dependencies. Lihat pesan di atas."
 fi
 
-# --- Database (safe, non-destructive) ---
-info "Menyiapkan database (migrasi aman — TIDAK menghapus data)…"
+# --- Database (PostgreSQL; safe, non-destructive schema sync) ---
+info "Menyiapkan database (sinkron skema aman — TIDAK menghapus data)…"
 {
-  npx prisma migrate deploy
   npx prisma generate
+  npx prisma db push
   "$PM" run db:seed
-} >>"$LOG" 2>&1 || warn "Persiapan database memberi peringatan — detail di $LOG"
+} >>"$LOG" 2>&1 || warn "Persiapan database memberi peringatan — cek DATABASE_URL & detail di $LOG"
 
 # --- Start server ---
 start_cmd_label="production"

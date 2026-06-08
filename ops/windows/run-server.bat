@@ -57,11 +57,11 @@ if not exist "%ROOT%\node_modules" (
   call npm install || (echo [ERROR] Gagal memasang dependencies.& popd & pause & exit /b 1)
 )
 
-rem --- Database (safe, non-destructive) ---
-echo Menyiapkan database ^(migrasi aman, TIDAK menghapus data^)...
-call npx prisma migrate deploy >>"%LOG%" 2>&1
-call npx prisma generate       >>"%LOG%" 2>&1
-call npm run db:seed           >>"%LOG%" 2>&1
+rem --- Database (PostgreSQL; safe, non-destructive schema sync) ---
+echo Menyiapkan database ^(sinkron skema aman, TIDAK menghapus data^)...
+call npx prisma generate >>"%LOG%" 2>&1
+call npx prisma db push  >>"%LOG%" 2>&1
+call npm run db:seed     >>"%LOG%" 2>&1
 
 rem --- Production build if needed ---
 if not exist "%ROOT%\.next\BUILD_ID" (

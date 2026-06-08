@@ -21,7 +21,7 @@
     "set-password": "node scripts/set-admin-password.mjs",
     "health": "node scripts/health-check.mjs",
     "screenshots": "node scripts/screenshot.cjs",
-    "setup": "prisma migrate deploy && prisma generate && tsx prisma/seed.ts"
+    "setup": "prisma generate && prisma db push && tsx prisma/seed.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

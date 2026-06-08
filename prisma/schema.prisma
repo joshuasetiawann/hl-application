@@ -1,14 +1,14 @@
 // HL Sales & Receivables Management App - data model
-// Currency: IDR only. No tax/PPN. Cash basis. Money stored as integers/decimals (Rupiah)
-// using Float here for SQLite portability but ALL money math is performed with decimal.js
-// in the application layer (see src/lib/calc.ts) to remain decimal-safe.
+// Currency: IDR only. No tax/PPN. Cash basis. Money stored as Float (double
+// precision) but ALL money math is performed with decimal.js in the application
+// layer (see src/lib/calc.ts) to remain decimal-safe.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
