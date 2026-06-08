@@ -1,86 +1,70 @@
-# Deploy to Vercel (PostgreSQL)
+# Deploy to Vercel — Turnkey Guide
 
-This app uses **PostgreSQL** for both local and Vercel. SQLite cannot run on
-Vercel's read-only serverless filesystem. Follow these steps once.
+This app auto-provisions itself on Vercel. On each deploy, the build step
+(`vercel-build`) automatically runs **prisma generate → db push → seed admin**,
+so tables and the admin account are created for you. **No manual db push/seed.**
+
+There are only **two things only you can do** (I can't access your Vercel/GitHub):
+**(1) create a database** and **(2) set `AUTH_SECRET`**. That's it.
 
 ---
 
-## Step 1 — Create a PostgreSQL database (free)
+## Step 1 — Add a PostgreSQL database (≈1 click)
 
-Pick one:
+In your Vercel project: **Storage → Create Database → Postgres**, and connect it to
+the project. Vercel automatically injects the connection env vars
+(`POSTGRES_PRISMA_URL`, `POSTGRES_URL_NON_POOLING`, …) — **the app auto-detects these,
+so you do NOT need to set `DATABASE_URL` manually.**
 
-- **Vercel Postgres** — in your Vercel project: **Storage → Create Database → Postgres**.
-  Vercel auto-adds `POSTGRES_*` env vars. You will use `POSTGRES_PRISMA_URL` (pooled) as
-  `DATABASE_URL`, and `POSTGRES_URL_NON_POOLING` for the one-time setup in Step 3.
-- **Neon** (https://neon.tech) or **Supabase** — create a project and copy the connection
-  string (looks like `postgresql://user:pass@host/db?sslmode=require`).
+> Using **Neon/Supabase** instead? Just add one env var `DATABASE_URL` =
+> their `postgresql://…` connection string (use the direct/non-pooled one).
 
-## Step 2 — Set Vercel Environment Variables
+## Step 2 — Add `AUTH_SECRET` (required)
 
-Vercel project → **Settings → Environment Variables** (apply to Production + Preview):
+Project → **Settings → Environment Variables** → add (for Production + Preview):
 
 | Variable | Value |
 | --- | --- |
-| `DATABASE_URL` | your Postgres connection string (Vercel Postgres: use the **pooled** `POSTGRES_PRISMA_URL`) |
 | `AUTH_SECRET` | a long random string — generate with `openssl rand -hex 32` |
-| `ADMIN_USERNAME` | *(optional)* admin username, default `admin` |
-| `ADMIN_PASSWORD` | *(optional)* initial admin password (used only by the seed in Step 3) |
+| `ADMIN_PASSWORD` | *(optional)* initial admin password (defaults to `admin123`) |
+| `ADMIN_USERNAME` | *(optional)* admin username (defaults to `admin`) |
 
-> Do **not** commit real values. `AUTH_SECRET` is **required** — without it, login returns
-> a 500 "Terjadi kesalahan pada server".
+> Without `AUTH_SECRET`, login returns **500 "Terjadi kesalahan pada server"**.
 
-## Step 3 — Create the tables + admin user (one time)
+## Step 3 — Redeploy
 
-Run from your computer, pointed at the **same** Postgres database:
+Push any commit (or hit **Redeploy** in Vercel). The build will:
+`prisma generate` → `prisma db push` (create tables) → seed admin → `next build`.
 
-```bash
-# 1. Put the Postgres URL in your local .env (for Vercel Postgres use the
-#    NON-POOLING url here, e.g. POSTGRES_URL_NON_POOLING):
-#    DATABASE_URL="postgresql://user:pass@host:5432/db?sslmode=require"
-#    AUTH_SECRET="...same long random string..."
-#    ADMIN_USERNAME="admin"
-#    ADMIN_PASSWORD="your-strong-password"
+Then open your `*.vercel.app` URL and log in:
+- **Username:** `admin` (or your `ADMIN_USERNAME`)
+- **Password:** your `ADMIN_PASSWORD` (or `admin123` if you didn't set one)
 
-npm install
-npx prisma db push      # creates all tables in Postgres
-npm run db:seed         # creates the admin user (+ demo data if DB is empty)
-```
-
-> Or run `npm run setup` (does generate + db push + seed in one go).
-> Change the password later with `npm run set-password` (or `ops/.../edit-password`).
-
-## Step 4 — Redeploy & log in
-
-Trigger a redeploy on Vercel (push a commit or "Redeploy"). Then open your
-`*.vercel.app` URL and log in with `ADMIN_USERNAME` / `ADMIN_PASSWORD`.
+To change the admin password, run `npm run set-password` locally (pointed at the same
+database). Redeploys will **not** reset it.
 
 ---
 
-## Login password — quick reference
-
-The admin password is whatever `ADMIN_PASSWORD` was when `db:seed` ran:
-- with `.env.example` value → `change-me-strong-password`
-- if seeded with no `ADMIN_PASSWORD` set → `admin123`
-
-Set/replace it anytime: point `DATABASE_URL` at your Postgres and run
-`npm run set-password` (hidden input, bcrypt-hashed, no restart needed).
+## Why these 2 steps can't be automated
+A database and a signing secret are credentials. I have no access to your Vercel
+account or GitHub settings, and secrets must never be committed to the repo. Every
+database-backed app on Vercel requires these two — but everything else (schema,
+tables, admin user, client generation) is now automatic.
 
 ## Troubleshooting
 
-| Symptom | Likely cause / fix |
+| Symptom | Cause / fix |
 | --- | --- |
-| **500 "Terjadi kesalahan pada server"** on login | `AUTH_SECRET` not set, OR DB not reachable/seeded. Check **Vercel → Deployment → Functions/Logs** for the exact error. |
-| "Username atau password salah" (401) | DB works, but wrong password — re-seed or `set-password`. |
-| Build OK but every DB page errors | `DATABASE_URL` missing/invalid in Vercel env vars. |
-| "Can't reach database server" / connection limit | Use the **pooled** connection string for `DATABASE_URL`. |
+| 500 "Terjadi kesalahan pada server" on login | `AUTH_SECRET` not set, or DB not reachable. Check **Vercel → Deployment → Functions/Logs**. |
+| Login says "Username atau password salah" (401) | DB works; wrong password. Use `ADMIN_PASSWORD` value, or `npm run set-password`. |
+| Build log: "No database env var found … Skipping db push & seed" | You haven't added a Postgres DB yet (Step 1). The site still deploys; add the DB and redeploy. |
+| Build log: "prisma db push failed" | DB unreachable/invalid at build. Verify the database is created and connected; redeploy. |
 
-## Local development (now uses Postgres too)
-
-Put your Postgres `DATABASE_URL` + `AUTH_SECRET` in `.env`, then:
+## Local development (also PostgreSQL)
 
 ```bash
-npm run setup     # generate + db push + seed
-npm run dev       # http://localhost:3000
+# .env:  DATABASE_URL="postgresql://…"   AUTH_SECRET="…"
+npm run setup                 # generate + db push + seed admin
+SEED_DEMO=true npm run db:seed  # optional: add demo customers/products/bons
+npm run dev                   # http://localhost:3000
 ```
-
-Tip: Neon supports free **branches**, so you can use a separate branch as your local dev DB.

@@ -22,17 +22,25 @@ function iso(year: number, month1: number, day: number): Date {
 async function main() {
   const username = process.env.ADMIN_USERNAME || "admin";
   const password = process.env.ADMIN_PASSWORD || "admin123";
-  const passwordHash = await bcrypt.hash(password, 10);
 
-  await prisma.user.upsert({
-    where: { username },
-    update: { passwordHash },
-    create: { username, passwordHash },
-  });
+  // Create the admin only if missing — re-running (e.g. on every Vercel deploy)
+  // must NOT overwrite a password the user already changed via set-password.
+  const existingAdmin = await prisma.user.findUnique({ where: { username } });
+  if (!existingAdmin) {
+    const passwordHash = await bcrypt.hash(password, 10);
+    await prisma.user.create({ data: { username, passwordHash } });
+    console.log(`✔ Admin user created: ${username}`);
+  } else {
+    console.log(`• Admin user already exists: ${username} (password unchanged)`);
+  }
   // Single-user app: drop any other accounts.
   await prisma.user.deleteMany({ where: { username: { not: username } } });
-  console.log(`✔ Admin user ready: ${username}`);
 
+  // Demo data is opt-in only, so it never pollutes a real/production database.
+  if (process.env.SEED_DEMO !== "true") {
+    console.log("• Skipping demo data (set SEED_DEMO=true to include it).");
+    return;
+  }
   if ((await prisma.customer.count()) > 0) {
     console.log("• Customers already exist — skipping demo data.");
     return;
