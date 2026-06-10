@@ -1,0 +1,4 @@
+# Never commit real secrets or local data
+.env
+n8n-data/
+postgres-data/
