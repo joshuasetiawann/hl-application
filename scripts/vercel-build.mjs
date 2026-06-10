@@ -33,8 +33,11 @@ const dbUrl =
 //    var, when set, still wins at runtime). Must happen before `next build`.
 run("node scripts/gen-auth-secret.mjs");
 
-// 1) Always generate the Prisma client.
+// 1) Always generate the Prisma client + the runtime-bootstrap DDL module
+//    (lets the app create missing tables itself on first request, so a DB
+//    connected AFTER this build still works without a redeploy).
 run("prisma generate");
+run("node scripts/gen-bootstrap-sql.mjs");
 
 // 2) + 3) Provision the database if one is configured.
 if (dbUrl) {

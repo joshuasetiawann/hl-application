@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { getSession } from "@/lib/auth";
 import { BusinessError } from "@/lib/services/transaction";
+import { DbSetupError } from "@/lib/bootstrap";
 
 /** Require an authenticated session in a route handler. Throws a Response on failure. */
 export async function requireAuth() {
@@ -27,6 +28,13 @@ export function handleError(err: unknown): NextResponse {
   }
   if (err instanceof BusinessError) {
     return NextResponse.json({ error: err.message }, { status: err.status });
+  }
+  if (err instanceof DbSetupError) {
+    console.error(`[db-setup] ${err.problem}: ${err.message}`);
+    return NextResponse.json(
+      { error: err.message, code: err.problem },
+      { status: err.status }
+    );
   }
   // Prisma unique constraint
   if (

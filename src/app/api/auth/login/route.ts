@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { ensureDatabaseReady } from "@/lib/bootstrap";
 import {
   verifyPassword,
   createSessionToken,
@@ -22,6 +23,11 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { username, password } = loginSchema.parse(body);
+
+    // Self-provision on first use: creates tables + admin on a fresh database
+    // (e.g. Postgres connected on Vercel after the build), and turns DB
+    // misconfiguration into an actionable message instead of a generic 500.
+    await ensureDatabaseReady();
 
     const user = await prisma.user.findUnique({ where: { username } });
     // Generic error to avoid leaking which field was wrong.

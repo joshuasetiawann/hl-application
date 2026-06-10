@@ -22,19 +22,39 @@ function createPrismaClient(): PrismaClient {
 }
 
 /**
- * If DATABASE_URL is not set, fall back to the connection string that Vercel /
- * Neon inject automatically. Neon adds POSTGRES_PRISMA_URL, DATABASE_URL_UNPOOLED,
- * POSTGRES_URL, … but NOT a plain DATABASE_URL — so resolve it here. Prefer a
- * pooled URL at runtime (best for serverless).
+ * The connection string for normal app queries. If DATABASE_URL is not set,
+ * fall back to what Vercel / Neon inject automatically (POSTGRES_PRISMA_URL,
+ * DATABASE_URL_UNPOOLED, POSTGRES_URL, … but NOT a plain DATABASE_URL).
+ * Prefer a pooled URL at runtime (best for serverless).
  */
-function resolveDatabaseUrl(): void {
-  if (process.env.DATABASE_URL) return;
-  const fallback =
+export function resolveAnyDatabaseUrl(): string | undefined {
+  return (
+    process.env.DATABASE_URL ||
     process.env.POSTGRES_PRISMA_URL ||
     process.env.POSTGRES_URL ||
     process.env.DATABASE_URL_UNPOOLED ||
     process.env.POSTGRES_URL_NON_POOLING ||
-    process.env.POSTGRES_URL_NO_SSL;
+    process.env.POSTGRES_URL_NO_SSL ||
+    undefined
+  );
+}
+
+/**
+ * The best connection string for DDL / provisioning: a DIRECT (non-pooled)
+ * connection when one is exposed — DDL and session advisory locks are
+ * unreliable through PgBouncer — otherwise whatever the app uses.
+ */
+export function resolveDirectDatabaseUrl(): string | undefined {
+  return (
+    process.env.DATABASE_URL_UNPOOLED ||
+    process.env.POSTGRES_URL_NON_POOLING ||
+    resolveAnyDatabaseUrl()
+  );
+}
+
+function resolveDatabaseUrl(): void {
+  if (process.env.DATABASE_URL) return;
+  const fallback = resolveAnyDatabaseUrl();
   if (fallback) process.env.DATABASE_URL = fallback;
 }
 

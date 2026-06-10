@@ -26,13 +26,20 @@ auto-detects them — you do NOT need to set `DATABASE_URL` manually.**
 Add one env var `DATABASE_URL` = their `postgresql://…` string (use the
 direct/non-pooled URL).
 
-Then **Redeploy** (Deployments → ⋯ → Redeploy, or push any commit). Open your
-`*.vercel.app` URL and log in:
+Then open your `*.vercel.app` URL and log in:
 
 - **Username:** `admin` (or your `ADMIN_USERNAME`)
 - **Password:** `admin123` (or your `ADMIN_PASSWORD`)
 
-That's it.
+That's it. **A redeploy is NOT required** after connecting the database: the
+app self-provisions at runtime — the first login (or a visit to `/api/health`)
+creates the tables and seeds the admin automatically. Redeploying also works
+(the build does the same provisioning), it's just not needed.
+
+> New env vars only reach **new** serverless invocations. If you connected the
+> database while a deployment was already serving traffic and login still says
+> the database is missing after ~a minute, hit **Redeploy** once to refresh the
+> running functions.
 
 ## Optional environment variables
 
@@ -54,13 +61,20 @@ the same database. Redeploys never reset a changed password.
 
 ## Troubleshooting
 
+**First stop: open `https://<your-app>.vercel.app/api/health`.** It's a public
+diagnostic that reports exactly what's wrong — which database env vars Vercel
+injected (as booleans, never values), whether the schema and admin user exist,
+and the precise fix. Opening it even triggers the same self-provisioning as
+login, so it can repair a fresh database on the spot.
+
 | Symptom | Cause / fix |
 | --- | --- |
+| Login: **"Database belum terhubung…"** (503) | No Postgres connected to the project. Do the Storage step above, then just try again — no redeploy needed. |
+| Login: **"Database terhubung tapi tidak bisa dijangkau…"** (503) | The DB exists but can't be reached: paused (Neon free tier auto-pauses), deleted, or rotated credentials. Resume/recreate it, then retry. |
 | Login says **"Username atau password salah"** (401) | DB works; wrong password. Use your `ADMIN_PASSWORD` (default `admin123`) or run `npm run set-password`. |
-| Pages 500 / "Terjadi kesalahan pada server" | Database not reachable. Confirm a Postgres is connected (Step above) and redeploy. Check **Vercel → Deployment → Functions/Logs**. |
 | You were logged out after a deploy | Expected if `AUTH_SECRET` isn't set (a new fallback was baked). Set `AUTH_SECRET` to keep sessions across deploys. |
-| Build log: "No database env var found … Skipping db push & seed" | No Postgres connected yet. The site still deploys; add a DB and redeploy. |
-| Build log: "prisma db push failed" | DB unreachable/invalid at build time. Verify the database is created and connected; redeploy. |
+| Build log: "No database env var found … Skipping db push & seed" | No Postgres connected at build time. Harmless: the app provisions itself at runtime on first login. |
+| Build log: "prisma db push failed" | DB unreachable/invalid at build time. Also harmless for the same reason — but check the URL if it persists. |
 
 ## Local development
 
