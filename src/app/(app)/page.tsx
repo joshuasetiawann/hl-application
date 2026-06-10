@@ -6,6 +6,7 @@ import { calculateRecognizedTotals } from "@/lib/calc";
 import { StatCard, Card, StatusBadge } from "@/components/ui";
 import { Icon } from "@/components/icons";
 import PdfButton from "@/components/PdfButton";
+import SeedDemoButton from "@/components/SeedDemoButton";
 import { formatIDR, formatDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,9 @@ export default async function DashboardPage() {
     orderBy: { tanggal: "desc" },
     take: 8,
   });
+
+  // Brand-new database (no customers at all) → offer one-click demo data.
+  const isEmpty = recentBons.length === 0 && (await prisma.customer.count()) === 0;
 
   const hari = now.toLocaleDateString("id-ID", {
     weekday: "long",
@@ -104,6 +108,23 @@ export default async function DashboardPage() {
         </Link>
         <PdfButton url="/api/pdf/piutang" label="PDF Piutang" />
       </div>
+
+      {/* Empty database → one-click starter data */}
+      {isEmpty && (
+        <Card className="flex flex-wrap items-center justify-between gap-4 border-dashed p-5 sm:p-6">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">
+              Belum ada data penjualan
+            </h2>
+            <p className="mt-1 max-w-xl text-[0.92rem] text-slate-500">
+              Mulai dengan menambah pelanggan & produk sendiri, atau isi dulu dengan
+              data contoh (2 pelanggan, 4 produk, 6 bon) untuk melihat cara kerja
+              aplikasi. Data contoh bisa dihapus kapan saja.
+            </p>
+          </div>
+          <SeedDemoButton />
+        </Card>
+      )}
 
       {/* Primary KPIs */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
