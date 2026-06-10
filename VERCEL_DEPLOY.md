@@ -33,8 +33,11 @@ Then open your `*.vercel.app` URL and log in:
 
 That's it. **A redeploy is NOT required** after connecting the database: the
 app self-provisions at runtime — the first login (or a visit to `/api/health`)
-creates the tables and seeds the admin automatically. Redeploying also works
-(the build does the same provisioning), it's just not needed.
+creates the tables, seeds the admin, **and fills a brand-new database with demo
+data** (2 customers, 4 products, 6 bons) so every screen is presentation-ready
+immediately. Set `SEED_DEMO=false` to start with an empty database instead;
+existing data is never touched either way. Redeploying also works (the build
+does the same provisioning), it's just not needed.
 
 > New env vars only reach **new** serverless invocations. If you connected the
 > database while a deployment was already serving traffic and login still says
@@ -82,6 +85,6 @@ login, so it can repair a fresh database on the spot.
 # .env:  DATABASE_URL="postgresql://…"   (AUTH_SECRET optional)
 npm install
 npm run setup                 # prisma generate + db push + seed admin
-SEED_DEMO=true npm run db:seed  # optional: add demo customers/products/bons
+npm run db:seed               # admin + demo data (set SEED_DEMO=false to skip demo)
 npm run dev                   # http://localhost:3000
 ```

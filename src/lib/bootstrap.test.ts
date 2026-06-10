@@ -65,7 +65,7 @@ d("ensureDatabaseReady — against a real Postgres", () => {
     __resetBootstrapStateForTests();
   });
 
-  it("provisions schema + admin on a completely empty database", async () => {
+  it("provisions schema + admin + demo data on a completely empty database", async () => {
     await dropAllTables();
     await ensureDatabaseReady();
 
@@ -80,6 +80,40 @@ d("ensureDatabaseReady — against a real Postgres", () => {
     const admin = await prisma.user.findUnique({ where: { username: "admin" } });
     expect(admin).not.toBeNull();
     expect(await bcrypt.compare("admin123", admin!.passwordHash)).toBe(true);
+
+    // Fresh database is demo-ready by default (client-presentable, never blank).
+    expect(await prisma.customer.count()).toBe(2);
+    expect(await prisma.transaction.count()).toBe(6);
+  });
+
+  it("skips demo data when SEED_DEMO=false (clean start)", async () => {
+    process.env.SEED_DEMO = "false";
+    try {
+      await dropAllTables();
+      await ensureDatabaseReady();
+
+      expect(await prisma.user.count()).toBe(1); // admin only
+      expect(await prisma.customer.count()).toBe(0);
+      expect(await prisma.transaction.count()).toBe(0);
+    } finally {
+      delete process.env.SEED_DEMO;
+    }
+  });
+
+  it("never adds demo data when real data already exists", async () => {
+    await dropAllTables();
+    await ensureDatabaseReady(); // seeds demo
+    await prisma.transactionLine.deleteMany();
+    await prisma.transaction.deleteMany();
+    await prisma.product.deleteMany();
+    await prisma.customer.deleteMany();
+    await prisma.customer.create({ data: { nama: "Pelanggan Asli" } });
+
+    __resetBootstrapStateForTests();
+    await ensureDatabaseReady();
+
+    expect(await prisma.customer.count()).toBe(1); // untouched
+    expect(await prisma.transaction.count()).toBe(0);
   });
 
   it("is idempotent and never overwrites an existing user's password", async () => {

@@ -12,6 +12,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { prisma, resolveAnyDatabaseUrl, resolveDirectDatabaseUrl } from "@/lib/db";
+import { seedDemoData } from "@/lib/demo-data";
 import { BOOTSTRAP_SQL } from "@/generated/bootstrap-sql";
 
 export type DbProblem = "NO_DB_ENV" | "DB_UNREACHABLE" | "PROVISION_FAILED";
@@ -96,6 +97,29 @@ async function seedAdminIfEmpty(client: PrismaClient): Promise<void> {
 }
 
 /**
+ * Fill an empty database with the demo dataset so a fresh deploy is
+ * presentation-ready (nothing on any screen looks broken/blank). ON by
+ * default; set SEED_DEMO=false to start with a clean database instead.
+ * Never runs when ANY customer exists, so real data is never touched.
+ */
+async function seedDemoIfEmpty(client: PrismaClient): Promise<void> {
+  if (process.env.SEED_DEMO === "false") return;
+  const result = await seedDemoData(client);
+  if (result.seeded) {
+    console.log(
+      `[bootstrap] Demo data seeded: ${result.customers} customers, ` +
+        `${result.products} products, ${result.transactions} transactions`
+    );
+  }
+}
+
+/** Admin + demo data, both idempotent. The shared "make it usable" step. */
+async function seedDefaults(client: PrismaClient): Promise<void> {
+  await seedAdminIfEmpty(client);
+  await seedDemoIfEmpty(client);
+}
+
+/**
  * Run the full DDL against a DIRECT (non-pooled) connection when available —
  * session-level advisory locks and DDL are unreliable through PgBouncer.
  * Tolerates partially-existing schemas so concurrent/failed runs self-heal.
@@ -119,7 +143,7 @@ async function provisionSchema(): Promise<void> {
         if (!isAlreadyExistsError(err)) throw err;
       }
     }
-    await seedAdminIfEmpty(client);
+    await seedDefaults(client);
     console.log("[bootstrap] Database schema provisioned at runtime.");
   } finally {
     try {
@@ -137,7 +161,7 @@ async function check(): Promise<void> {
   }
   try {
     // One cheap query proves both connectivity and that the schema exists…
-    await seedAdminIfEmpty(prisma); // …and repairs a "tables exist, never seeded" state.
+    await seedDefaults(prisma); // …and repairs a "tables exist, never seeded" state.
     return;
   } catch (err) {
     if (err instanceof DbSetupError) throw err;

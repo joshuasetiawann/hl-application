@@ -1,8 +1,8 @@
 /**
  * Seed the single admin user from environment variables (ADMIN_USERNAME, ADMIN_PASSWORD)
- * and, opt-in via SEED_DEMO=true and only when the database is empty, the demo
- * dataset from src/lib/demo-data.ts (customers, products, transactions) so the
- * app is immediately explorable.
+ * and — only when the database is empty — the demo dataset from
+ * src/lib/demo-data.ts (customers, products, transactions) so the app is
+ * immediately explorable. Set SEED_DEMO=false to skip the demo data.
  */
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -27,9 +27,10 @@ async function main() {
   // Single-user app: drop any other accounts.
   await prisma.user.deleteMany({ where: { username: { not: username } } });
 
-  // Demo data is opt-in only, so it never pollutes a real/production database.
-  if (process.env.SEED_DEMO !== "true") {
-    console.log("• Skipping demo data (set SEED_DEMO=true to include it).");
+  // Demo data fills an EMPTY database only (seedDemoData refuses otherwise),
+  // so a fresh deploy is demo-ready out of the box. Opt out with SEED_DEMO=false.
+  if (process.env.SEED_DEMO === "false") {
+    console.log("• Skipping demo data (SEED_DEMO=false).");
     return;
   }
   const result = await seedDemoData(prisma);
