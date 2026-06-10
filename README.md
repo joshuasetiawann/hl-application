@@ -27,7 +27,8 @@ npm install
 
 # 2. Configure environment
 cp .env.example .env
-#   Edit .env and set a strong AUTH_SECRET, plus ADMIN_USERNAME / ADMIN_PASSWORD.
+#   Set DATABASE_URL (PostgreSQL). AUTH_SECRET is optional (a per-build fallback is
+#   auto-generated) but recommended; set ADMIN_USERNAME / ADMIN_PASSWORD too.
 
 # 3. Create the database, generate the client, and seed the admin user
 npm run setup
@@ -73,10 +74,10 @@ check-health, show-status, change password, logs, troubleshooting).
 
 | Variable         | Description                                              |
 | ---------------- | ------------------------------------------------------- |
-| `DATABASE_URL`   | PostgreSQL connection string (local + Vercel).          |
-| `AUTH_SECRET`    | Long random string used to sign session JWTs.           |
-| `ADMIN_USERNAME` | The single admin login username.                        |
-| `ADMIN_PASSWORD` | The single admin login password (hashed on seed).       |
+| `DATABASE_URL`   | PostgreSQL connection string (local + Vercel). **Required.** |
+| `AUTH_SECRET`    | Signs session JWTs. **Optional** — a per-build fallback is auto-generated; set it for sessions that survive redeploys. |
+| `ADMIN_USERNAME` | The single admin login username (default `admin`).      |
+| `ADMIN_PASSWORD` | The single admin login password, hashed on seed (default `admin123`). |
 
 ## Login / Admin account
 
@@ -100,7 +101,7 @@ by the seed script from `ADMIN_USERNAME` / `ADMIN_PASSWORD` in `.env`. The login
 | `npm run start`    | Start production server                       |
 | `npm run lint`     | ESLint                                        |
 | `npm run test`     | Vitest unit tests (calculation reference)     |
-| `npm run setup`    | migrate deploy + generate + seed              |
+| `npm run setup`    | prisma generate + db push + seed admin        |
 | `npm run db:seed`  | (Re)seed admin user                           |
 | `npm run set-password` | Change the admin password securely (bcrypt) |
 | `npm run health`   | Ping `/api/health` and print OK/WARNING/ERROR |
@@ -156,13 +157,12 @@ Worked example: threshold 10jt, paid omzet 25jt, none granted → 2 available; g
 - Transaction line **snapshots** (type, base/modal price, discount steps, discounted price,
   line omzet, line profit) preserve historical bon values even if master data later changes.
 - Master data uses **soft-delete** (never hard-deleted when history exists).
-- LM/BR and Piutang/Lunas are constrained values (SQLite has no native enums, so they are
-  validated with Zod at the application layer).
+- LM/BR and Piutang/Lunas are constrained values validated with Zod at the application layer.
 
 ## Assumptions / deferred items
 
-- **SQLite enums:** stored as strings constrained via Zod (SQLite lacks native enums). Switching
-  `provider` to `postgresql` is straightforward and would allow native enums if preferred.
+- **Enums as strings:** LM/BR and Piutang/Lunas are stored as strings constrained via Zod at the
+  application layer (kept portable; could become native Postgres enums if preferred).
 - **Bonus bon status:** stored as `LUNAS` with 0 amount owed so it never appears as outstanding
   Piutang; it is fully excluded from all financial totals and shown only in the bonus log/markers.
 - **Editing a bon** intentionally recomputes snapshots from current customer/product master data

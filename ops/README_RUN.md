@@ -116,8 +116,8 @@ coba **restart-server**.
 
 | Variabel | Wajib | Keterangan |
 | --- | --- | --- |
-| `DATABASE_URL` | ya | Koneksi database. Default `file:./dev.db` (SQLite). |
-| `AUTH_SECRET` | ya | String acak panjang untuk menandatangani sesi login. Min. 16 karakter. |
+| `DATABASE_URL` | ya | Koneksi database PostgreSQL (`postgresql://…`). |
+| `AUTH_SECRET` | tidak | Opsional — bila kosong, build membuat secret acak otomatis. Isi (≥16 karakter) agar sesi login tetap valid antar-deploy. |
 | `ADMIN_USERNAME` | ya | Username admin (default `admin`). |
 | `ADMIN_PASSWORD` | ya* | Password awal admin saat database pertama kali dibuat. Setelah itu gunakan **edit-password**. |
 | `PORT` | tidak | Port server (default `3000`). |

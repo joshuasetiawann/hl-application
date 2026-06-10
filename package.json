@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "next dev",
     "postinstall": "prisma generate",
-    "build": "prisma generate && next build",
+    "build": "node scripts/gen-auth-secret.mjs && prisma generate && next build",
     "vercel-build": "node scripts/vercel-build.mjs && next build",
     "build:next": "next build",
     "start": "next start",

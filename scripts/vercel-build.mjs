@@ -29,6 +29,10 @@ const dbUrl =
   process.env.POSTGRES_URL_NO_SSL ||
   "";
 
+// 0) Bake a session secret so login works with zero config (AUTH_SECRET env
+//    var, when set, still wins at runtime). Must happen before `next build`.
+run("node scripts/gen-auth-secret.mjs");
+
 // 1) Always generate the Prisma client.
 run("prisma generate");
 

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { getAuthSecretBytes } from "@/lib/auth-secret";
 
 const COOKIE_NAME = "hl_session";
 
@@ -7,9 +8,10 @@ const COOKIE_NAME = "hl_session";
 const PUBLIC_PATHS = ["/login"];
 const PUBLIC_API_PATHS = ["/api/auth/login", "/api/health"];
 
+// Same resolver the login route uses — a mismatch here would silently reject
+// every valid session and trap the user in a redirect loop.
 function getSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET ?? "";
-  return new TextEncoder().encode(secret);
+  return getAuthSecretBytes();
 }
 
 async function isAuthenticated(req: NextRequest): Promise<boolean> {

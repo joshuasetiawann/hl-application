@@ -1,6 +1,6 @@
 # Render.com blueprint — web service + managed PostgreSQL (persistent).
 # Deploy: push to GitHub, then "New +" -> "Blueprint" in Render and point it at this repo.
-# Set ADMIN_PASSWORD and AUTH_SECRET as secret env vars in the Render dashboard.
+# Set ADMIN_PASSWORD as a secret env var in the Render dashboard.
 services:
   - type: web
     name: hl-sales-receivables
@@ -13,8 +13,9 @@ services:
         fromDatabase:
           name: hl-postgres
           property: connectionString
-      - key: AUTH_SECRET
-        generateValue: true
+      # AUTH_SECRET is baked into the image at build time (Next inlines it into the
+      # Edge middleware), so a runtime-only value would mismatch and break sessions.
+      # A random secret is baked when unset; to pin one, pass it as a Docker build arg.
       - key: ADMIN_USERNAME
         value: admin
       - key: ADMIN_PASSWORD

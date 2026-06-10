@@ -1,5 +1,5 @@
 /**
- * Integration tests for the service layer against a real SQLite test DB.
+ * Integration tests for the service layer against a real Postgres test DB.
  * The schema is created by vitest.global-setup.ts; each test starts from a clean slate.
  */
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
@@ -15,6 +15,12 @@ import {
 import { getCustomerBonusEligibility, getEligibleCustomers } from "@/lib/services/bonus";
 import { recapOverall, recapPerCustomer, getFilteredTransactions } from "@/lib/services/report";
 import { stringifyDiscountArray } from "@/lib/serialize";
+
+// These tests need a real Postgres (set TEST_DATABASE_URL). Without one they
+// skip — the schema setup in vitest.global-setup.ts is skipped too — so the
+// suite never fails just because no database is available locally.
+const RUN_DB = !!process.env.TEST_DATABASE_URL;
+const d = RUN_DB ? describe : describe.skip;
 
 async function resetDb() {
   // Order matters due to FKs.
@@ -56,15 +62,17 @@ async function makeProduct(opts?: {
   });
 }
 
-beforeEach(async () => {
-  await resetDb();
-});
+if (RUN_DB) {
+  beforeEach(async () => {
+    await resetDb();
+  });
 
-afterAll(async () => {
-  await prisma.$disconnect();
-});
+  afterAll(async () => {
+    await prisma.$disconnect();
+  });
+}
 
-describe("transaction creation & calculation", () => {
+d("transaction creation & calculation", () => {
   it("computes line omzet, total omzet (excl ongkir), amount owed (incl ongkir), laba (excl ongkir)", async () => {
     const c = await makeCustomer({ lm: [20, 20, 10] });
     const p = await makeProduct({ base: 100, modal: 40, tipe: "LM" });
@@ -173,7 +181,7 @@ describe("transaction creation & calculation", () => {
   });
 });
 
-describe("cash basis recognition", () => {
+d("cash basis recognition", () => {
   it("Piutang is not recognized; Lunas is recognized", async () => {
     const c = await makeCustomer();
     const p = await makeProduct({ base: 1000, modal: 400, tipe: "LM" });
@@ -201,7 +209,7 @@ describe("cash basis recognition", () => {
   });
 });
 
-describe("settlement flows", () => {
+d("settlement flows", () => {
   it("settles a single bon only", async () => {
     const c = await makeCustomer();
     const p = await makeProduct({ base: 100, modal: 0 });
@@ -262,7 +270,7 @@ describe("settlement flows", () => {
   });
 });
 
-describe("bonus logic (worked scenario)", () => {
+d("bonus logic (worked scenario)", () => {
   it("threshold 10jt + paid 25jt => 2 available; granting 2 consumes 20jt, 5jt carryover", async () => {
     const c = await makeCustomer({ threshold: 10_000_000 });
     const p = await makeProduct({ base: 25_000_000, modal: 0, tipe: "BR" });
@@ -329,7 +337,7 @@ describe("bonus logic (worked scenario)", () => {
   });
 });
 
-describe("recap LM vs BR breakdown", () => {
+d("recap LM vs BR breakdown", () => {
   it("splits omzet/profit by product type for Lunas transactions", async () => {
     const c = await makeCustomer();
     const lm = await makeProduct({ nama: "LMx", tipe: "LM", base: 1000, modal: 400 });
@@ -373,7 +381,7 @@ describe("recap LM vs BR breakdown", () => {
   });
 });
 
-describe("soft-delete on transactions", () => {
+d("soft-delete on transactions", () => {
   it("excludes soft-deleted transactions from reports", async () => {
     const c = await makeCustomer();
     const p = await makeProduct({ base: 1000, modal: 0 });
@@ -390,7 +398,7 @@ describe("soft-delete on transactions", () => {
   });
 });
 
-describe("eligible customers helper", () => {
+d("eligible customers helper", () => {
   it("lists customers with available bonuses", async () => {
     const c = await makeCustomer({ nama: "Eligible", threshold: 10_000_000 });
     const p = await makeProduct({ base: 20_000_000, modal: 0, tipe: "BR" });

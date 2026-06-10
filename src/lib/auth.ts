@@ -2,18 +2,15 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
+import { getAuthSecretBytes } from "./auth-secret";
 
 const COOKIE_NAME = "hl_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8; // 8 hours
 
+// Resolves AUTH_SECRET (env) or the per-build baked fallback — see auth-secret.ts.
+// Must match the secret used by the Edge middleware exactly.
 function getSecret(): Uint8Array {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret || secret.length < 16) {
-    throw new Error(
-      "AUTH_SECRET is missing or too short. Set a long random AUTH_SECRET in your environment."
-    );
-  }
-  return new TextEncoder().encode(secret);
+  return getAuthSecretBytes();
 }
 
 export interface SessionPayload {

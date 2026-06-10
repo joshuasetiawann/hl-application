@@ -1,10 +1,13 @@
 # HL Sales & Receivables — production image (Next.js + Prisma + PostgreSQL)
 # Build:  docker build -t hl-app .
+#         # optional: pin a fixed session secret (else a random one is baked in):
+#         docker build --build-arg AUTH_SECRET="$(openssl rand -hex 32)" -t hl-app .
 # Run:    docker run -p 3000:3000 \
 #           -e DATABASE_URL=postgresql://USER:PASS@HOST:5432/DB \
-#           -e AUTH_SECRET=change-me-long-random \
 #           -e ADMIN_USERNAME=admin -e ADMIN_PASSWORD=strong-pass \
 #           hl-app
+# Note: AUTH_SECRET is baked at BUILD time (Next inlines it into the Edge
+# middleware), so set it as a --build-arg above, not just a runtime -e.
 
 FROM node:20-bookworm-slim AS base
 WORKDIR /app
@@ -18,13 +21,16 @@ FROM base AS deps
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# --- build: generate Prisma client (Postgres) and build Next ---
+# --- build: bake secret, generate Prisma client (Postgres), build Next ---
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# A real DB isn't needed at build time (all pages are dynamic); placeholder lets
+# `prisma generate` run. Pass --build-arg AUTH_SECRET=... to bake a fixed secret.
+ARG AUTH_SECRET=""
+ENV AUTH_SECRET=$AUTH_SECRET
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
-RUN npx prisma generate --schema=prisma/schema.postgres.prisma \
-    && npm run build:next
+RUN npm run build
 
 # --- run: production runtime ---
 FROM base AS run
@@ -40,4 +46,4 @@ COPY --from=build /app/prisma ./prisma
 
 EXPOSE 3000
 # On start: apply schema to Postgres (db push), seed the single admin + demo data, then serve.
-CMD ["sh", "-c", "npx prisma db push --schema=prisma/schema.postgres.prisma --skip-generate && npx tsx prisma/seed.ts && npx next start -p ${PORT}"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npx tsx prisma/seed.ts && npx next start -p ${PORT}"]

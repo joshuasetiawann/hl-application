@@ -21,9 +21,9 @@ rather than guessing. **What I need from you to finish the deploy is listed at t
 | `Dockerfile` | Production image: builds Next + Prisma (Postgres), runs `prisma db push` + seed + `next start` |
 | `.dockerignore` | Keeps secrets/local DB/build caches out of the image |
 | `render.yaml` | Render.com blueprint: Docker web service **+ managed persistent PostgreSQL** |
-| `prisma/schema.postgres.prisma` | Production PostgreSQL schema (validated ✅) — same models as the SQLite dev schema |
+| `prisma/schema.prisma` | PostgreSQL schema used everywhere (local, tests, Vercel, Docker) |
 | `.env.example` | All required env var **names** (no secret values) |
-| `package.json` → `build:next` | `next build` without re-running the SQLite generate (used in Docker) |
+| `package.json` → `build:next` | `next build` only, skipping the Prisma generate (used in Docker) |
 
 The production Postgres schema was validated with `prisma validate` and the Prisma client
 generates from it successfully. The production build passes (`npm run build` ✅).
@@ -43,7 +43,7 @@ external Postgres such as Neon/Supabase; see notes below.)
 | `ADMIN_PASSWORD` | Single admin login password (seeded, bcrypt-hashed). |
 
 ## Database / migration strategy
-- Production uses **PostgreSQL** via `prisma/schema.postgres.prisma`.
+- The app uses **PostgreSQL** everywhere via `prisma/schema.prisma`.
 - On container start the entrypoint runs `prisma db push` (creates/updates the schema — no
   migration-history/provider mismatch) then `prisma/seed.ts` (idempotent: upserts the single
   admin user; only seeds demo data when the DB is empty).
@@ -67,9 +67,10 @@ docker run -p 3000:3000 \
   hl-app
 ```
 
-### Alternative: Vercel
-- Set the Prisma schema to the Postgres one for builds (`prisma generate --schema=prisma/schema.postgres.prisma`)
-  and provide a Neon/Supabase `DATABASE_URL`. Run `prisma db push` once against it.
+### Alternative: Vercel (turnkey)
+- Import the repo, connect a Postgres (Vercel Storage one-click, or a Neon/Supabase
+  `DATABASE_URL`), and deploy. The build auto-runs generate + db push + seed admin, and
+  `AUTH_SECRET` is auto-generated (optional). See [`VERCEL_DEPLOY.md`](VERCEL_DEPLOY.md).
 
 ## Build / test / deploy results
 | Step | Result |

@@ -8,8 +8,8 @@ left room for judgment.
 
 - **Next.js 14 (App Router) + TypeScript** — server components for data-heavy pages,
   client components for interactive forms.
-- **Prisma + SQLite** — zero-config local DB; `DATABASE_URL` can point to Postgres in
-  production with no code changes (only the `provider` in `schema.prisma` and a migration).
+- **Prisma + PostgreSQL** — the same database engine locally, in tests, on Vercel, and in
+  Docker (no SQLite/Postgres provider switching to manage).
 - **Tailwind CSS** for styling; small shared component library in `src/components/ui.tsx`.
 - **decimal.js** for all money math; **jose** (JWT cookie) + **bcryptjs** for auth;
   **pdfkit** for PDF; **Vitest** for tests.
@@ -21,8 +21,9 @@ left room for judgment.
 - Cascading discounts can produce fractional Rupiah (e.g. base 100, `[20,20,10]` → `57.6`).
   We **preserve up to 2 decimal places** on persisted/derived values via `toMoneyNumber()`
   (round half-up). This keeps the documented `57.6` example exact while avoiding float drift.
-- Persisted snapshot/total columns use SQLite `Float`, but values are always computed with
-  decimal.js first and rounded to 2 dp before storage, so no naive float math touches money.
+- Persisted snapshot/total columns use Postgres `Float` (double precision), but values are
+  always computed with decimal.js first and rounded to 2 dp before storage, so no naive float
+  math touches money.
 - IDR display uses `Intl.NumberFormat("id-ID", { currency: "IDR" })`. **No tax/PPN** anywhere.
 
 ## Cash-basis recognition
@@ -93,8 +94,9 @@ form (live preview), reports, PDF, and tests:
 - **Unit tests** (`src/lib/calc.test.ts`, 23 cases): cascading discount (57.6 not 50),
   discount validation, line/transaction math, ongkir handling, recognized totals, bonus math.
 - **Integration tests** (`src/lib/services/services.test.ts`, 15 cases) run against a real
-  SQLite test DB (`prisma/test.db`, created by `vitest.global-setup.ts` via `prisma db push
-  --force-reset`): transaction creation/calculation, duplicate Nomor Bon, soft-delete hiding
+  Postgres test DB (set `TEST_DATABASE_URL`; `vitest.global-setup.ts` runs `prisma db push
+  --force-reset`, and the suite skips cleanly when no DB is provided): transaction
+  creation/calculation, duplicate Nomor Bon, soft-delete hiding
   with preserved history, edit recalculation, cash-basis recognition, single + whole-month
   settlement (with already-Lunas skip and other-month isolation), the full bonus worked
   scenario (10jt/25jt → 2, grant 2 → consume 20jt / carry 5jt), over-grant prevention, bonus
@@ -108,5 +110,5 @@ form (live preview), reports, PDF, and tests:
 - Reports expose month/year + customer filters in the UI; LM/BR is shown as a built-in
   breakdown rather than a separate toggle (every recap already splits LM vs BR).
 - No CSV export (PDF only, per spec). No multi-user/roles (single-user by design).
-- SQLite is used for portability; high-concurrency production deployments should switch
-  `DATABASE_URL` to Postgres.
+- PostgreSQL is used everywhere (local, tests, Vercel, Docker); there is no SQLite path to
+  migrate away from.
