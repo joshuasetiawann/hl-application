@@ -5,9 +5,9 @@
 :root {
   color-scheme: light;
   /* Warm, neutral application canvas — calm and premium, never stark white. */
-  --app-bg: #f7f6f3;
+  --app-bg: #f6f4f0;
   --app-bg-accent: #f1efea;
-  --ink: #1d2433;
+  --ink: #071426;
 }
 
 html {
@@ -94,10 +94,10 @@ body {
     @apply w-full;
   }
 
-  /* ---- Inputs: calm, structured, clear focus ---- */
+  /* ---- Inputs: calm, structured, clear focus, uniform height ---- */
   .input {
     @apply w-full rounded-lg border border-slate-300/80 bg-white px-3.5 py-2.5 text-[0.95rem] text-slate-900
-           shadow-sm transition-shadow placeholder:text-slate-400
+           shadow-sm transition-shadow placeholder:text-slate-400 min-h-[2.75rem]
            focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15;
   }
   select.input {
@@ -150,13 +150,47 @@ body {
 
   /* ---- Tables: premium hierarchy, readable rows, tabular figures ---- */
   .table-th {
-    @apply px-4 py-3 text-left text-[0.74rem] font-semibold uppercase tracking-[0.06em] text-slate-400;
+    @apply px-4 py-3 text-left text-[0.75rem] font-semibold uppercase tracking-[0.06em] text-slate-500;
   }
   .table-td {
     @apply px-4 py-3.5 text-[0.92rem] text-slate-700 align-middle;
   }
   .num {
     @apply tnum text-right;
+  }
+  /* KPI figures scale with their card (container query) so long rupiah values
+     shrink gracefully instead of clipping — at any grid density or viewport. */
+  .stat-figure {
+    container-type: inline-size;
+  }
+  .stat-figure > span {
+    font-size: 1.35rem; /* fallback for browsers without container queries */
+    line-height: 1.2;
+    display: block;
+  }
+  @supports (font-size: 1cqw) {
+    .stat-figure > span {
+      font-size: clamp(1rem, 11.5cqw, 1.65rem);
+    }
+  }
+  /* Horizontal-scroll wrapper for wide tables: keeps a visible (thin) scrollbar
+     on touch/mobile as the affordance that more columns exist to the right. */
+  .table-wrap {
+    @apply overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(148 163 184 / 0.5) transparent;
+  }
+  .table-wrap::-webkit-scrollbar {
+    height: 6px;
+  }
+  .table-wrap::-webkit-scrollbar-thumb {
+    background: rgb(148 163 184 / 0.5);
+    border-radius: 3px;
+  }
+  .table-wrap::-webkit-scrollbar-track {
+    background: transparent;
   }
 }
 

@@ -78,7 +78,7 @@ export default async function ReportsPage({
       <div>
         <h2 className="mb-3 text-lg font-semibold">Rekap per Pelanggan</h2>
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-wrap">
             <table className="w-full min-w-[48rem]">
               <thead>
                 <tr className="border-b border-slate-200/70">

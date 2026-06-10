@@ -85,7 +85,7 @@ export default async function PiutangPage({
             message="Semua bon pada periode ini sudah lunas."
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-wrap">
             <table className="w-full min-w-[40rem]">
               <thead>
                 <tr className="border-b border-slate-200/70">

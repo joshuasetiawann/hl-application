@@ -124,7 +124,7 @@ export default async function TransactionDetailPage({
         <div className="panel-head">
           <h2 className="text-base font-semibold text-slate-900">Detail Produk</h2>
         </div>
-        <div className="overflow-x-auto">
+        <div className="table-wrap">
           <table className="w-full min-w-[40rem]">
             <thead>
               <tr className="border-b border-slate-200/70">

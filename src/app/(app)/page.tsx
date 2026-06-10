@@ -76,7 +76,7 @@ export default async function DashboardPage() {
             <p className="text-[0.78rem] font-medium uppercase tracking-[0.18em] text-white/60">
               {hari}
             </p>
-            <h1 className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">
+            <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-white sm:text-3xl">
               Ringkasan Bisnis HL
             </h1>
             <p className="mt-1 text-[0.95rem] text-white/70">
@@ -182,7 +182,7 @@ export default async function DashboardPage() {
               Lihat semua <Icon name="chevronRight" size={15} />
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="table-wrap">
             <table className="w-full min-w-[34rem]">
               <thead>
                 <tr className="border-b border-slate-200/70">

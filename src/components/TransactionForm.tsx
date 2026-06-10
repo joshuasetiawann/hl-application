@@ -247,21 +247,23 @@ export default function TransactionForm({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_22rem]">
       <div className="space-y-6">
         {/* Stepper */}
-        <ol className="flex flex-wrap items-center gap-1.5">
+        <ol aria-label="Langkah pembuatan bon" className="flex flex-wrap items-center gap-y-2">
           {STEPS.map((label, i) => {
             const n = i + 1;
             const active = n === step;
             const done = n < step;
             return (
-              <li key={label} className="flex items-center gap-1.5">
+              <li key={label} className="flex items-center">
                 <button
                   type="button"
                   onClick={() => n < step && setStep(n)}
-                  className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[0.85rem] font-semibold transition-colors ${
+                  aria-current={active ? "step" : undefined}
+                  disabled={n > step}
+                  className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-[0.85rem] font-semibold transition-colors disabled:cursor-default ${
                     active
                       ? "bg-brand-700 text-white shadow-card"
                       : done
-                        ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200"
+                        ? "bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100"
                         : "bg-slate-100 text-slate-500"
                   }`}
                 >
@@ -274,11 +276,20 @@ export default function TransactionForm({
                   </span>
                   <span className="hidden sm:inline">{label}</span>
                 </button>
-                {n < STEPS.length && <span className="text-slate-300">·</span>}
+                {n < STEPS.length && (
+                  <span
+                    aria-hidden
+                    className={`mx-1.5 h-px w-4 sm:w-6 ${done ? "bg-emerald-300" : "bg-slate-300"}`}
+                  />
+                )}
               </li>
             );
           })}
         </ol>
+        {/* Mobile: chips hide their labels, so spell the current step out. */}
+        <p className="-mt-3 text-[0.85rem] font-medium text-slate-500 sm:hidden">
+          Langkah {step} dari {STEPS.length}: {STEPS[step - 1]}
+        </p>
 
         {error && (
           <div className="flex items-center gap-2.5 rounded-xl bg-rose-50 px-4 py-3 text-[0.95rem] font-medium text-rose-700 ring-1 ring-inset ring-rose-100">

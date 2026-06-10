@@ -28,31 +28,32 @@ export default async function LoginPage() {
           aria-hidden
         />
         <div className="relative flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-base font-bold ring-1 ring-white/20">
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 text-base font-bold text-white ring-1 ring-white/30">
             HL
           </span>
-          <span className="text-[0.78rem] font-medium uppercase tracking-[0.2em] text-white/70">
+          <span className="text-[0.78rem] font-semibold uppercase tracking-[0.2em] text-white/85">
             Sales &amp; Receivables
           </span>
         </div>
 
         <div className="relative max-w-md">
-          <h2 className="text-3xl font-bold leading-tight tracking-tight">
-            Kelola penjualan &amp; piutang HL dengan tenang dan rapi.
+          <h2 className="text-3xl font-bold leading-snug tracking-tight text-white">
+            Kelola penjualan &amp; piutang HL dengan{" "}
+            <span className="text-gold-300">tenang dan rapi.</span>
           </h2>
           <ul className="mt-8 space-y-4">
             {HIGHLIGHTS.map((h) => (
-              <li key={h.text} className="flex items-center gap-3 text-white/85">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 ring-1 ring-white/15">
+              <li key={h.text} className="flex items-center gap-3 text-white/95">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/15 text-gold-200 ring-1 ring-white/25">
                   <Icon name={h.icon} size={18} />
                 </span>
-                <span className="text-[0.95rem]">{h.text}</span>
+                <span className="text-[0.95rem] font-medium">{h.text}</span>
               </li>
             ))}
           </ul>
         </div>
 
-        <div className="relative text-[0.8rem] text-white/50">
+        <div className="relative text-[0.8rem] font-medium text-white/70">
           Aplikasi internal • Rupiah (IDR) • Tanpa PPN
         </div>
       </div>

@@ -61,8 +61,10 @@ export function StatCard({
   icon?: IconName;
 }) {
   const a = ACCENTS[accent];
+  // Negative figures must read clearly as losses, whatever the card accent.
+  const negative = value.trim().startsWith("-");
   return (
-    <div className="card relative overflow-hidden p-5">
+    <div className="card relative overflow-hidden p-4 sm:p-5">
       <span className={`absolute inset-y-0 left-0 w-1 ${a.bar}`} aria-hidden />
       <div className="flex items-start justify-between gap-3">
         <div className="text-[0.78rem] font-semibold uppercase tracking-wide text-slate-500">
@@ -74,10 +76,16 @@ export function StatCard({
           </span>
         )}
       </div>
-      <div className={`mt-2 text-[1.65rem] font-bold tracking-tight tnum ${a.value}`}>
-        {value}
+      <div className="stat-figure mt-2">
+        <span
+          className={`whitespace-nowrap font-bold tracking-tight tnum ${
+            negative ? "text-rose-700" : a.value
+          }`}
+        >
+          {value}
+        </span>
       </div>
-      {hint && <div className="mt-1 text-[0.82rem] text-slate-400">{hint}</div>}
+      {hint && <div className="mt-1 text-[0.82rem] text-slate-500">{hint}</div>}
     </div>
   );
 }

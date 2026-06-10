@@ -120,7 +120,7 @@ export default async function TransactionsPage({
             action={<Link href="/transactions/new" className="btn-primary">+ Buat Bon Baru</Link>}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-wrap">
             <table className="w-full min-w-[52rem]">
               <thead>
                 <tr className="border-b border-slate-200/70">

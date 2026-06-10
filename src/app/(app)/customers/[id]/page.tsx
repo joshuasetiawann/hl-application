@@ -143,7 +143,7 @@ export default async function CustomerDetailPage({
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="table-wrap">
           <table className="w-full">
             <thead>
               <tr className="border-b border-slate-200/70">

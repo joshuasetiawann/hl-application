@@ -80,7 +80,7 @@ export default async function BonusPage() {
       <section>
         <h2 className="mb-3 text-base font-semibold text-slate-900">Progress Semua Pelanggan</h2>
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-wrap">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200/70">
@@ -120,7 +120,7 @@ export default async function BonusPage() {
           {bonusBons.length === 0 ? (
             <EmptyState title="Belum ada bonus bon" message="Bon bonus yang dibuat akan muncul di sini." />
           ) : (
-            <div className="overflow-x-auto">
+            <div className="table-wrap">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-slate-200/70">

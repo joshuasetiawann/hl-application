@@ -73,7 +73,7 @@ export default async function CustomersPage({
             action={<Link href="/customers/new" className="btn-primary">+ Tambah Pelanggan</Link>}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="table-wrap">
             <table className="w-full min-w-[44rem]">
               <thead>
                 <tr className="border-b border-slate-200/70">

@@ -55,7 +55,7 @@ export default async function ProductsPage({
       </Card>
 
       <Card>
-        <div className="overflow-x-auto">
+        <div className="table-wrap">
           <table className="w-full min-w-[40rem]">
             <thead>
               <tr className="border-b border-slate-200/70">
