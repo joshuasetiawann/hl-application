@@ -100,20 +100,47 @@ d("ensureDatabaseReady — against a real Postgres", () => {
     }
   });
 
-  it("never adds demo data when real data already exists", async () => {
+  it("never adds demo data when REAL business data exists (a non-demo bon)", async () => {
     await dropAllTables();
     await ensureDatabaseReady(); // seeds demo
     await prisma.transactionLine.deleteMany();
     await prisma.transaction.deleteMany();
     await prisma.product.deleteMany();
     await prisma.customer.deleteMany();
-    await prisma.customer.create({ data: { nama: "Pelanggan Asli" } });
+    // Real usage = a real customer + a real (non-demo) bon.
+    const c = await prisma.customer.create({ data: { nama: "Pelanggan Asli" } });
+    const p = await prisma.product.create({
+      data: { nama: "Produk Asli", tipe: "LM", hargaBase: 100, hargaModal: 40 },
+    });
+    await prisma.transaction.create({
+      data: {
+        nomorBon: "REAL-001",
+        customerId: c.id,
+        omzetTotal: 100,
+        profitTotal: 60,
+        amountOwed: 100,
+        lines: {
+          create: {
+            productId: p.id,
+            quantity: 1,
+            productNameSnapshot: p.nama,
+            productTypeSnapshot: "LM",
+            hargaBaseSnapshot: 100,
+            hargaModalSnapshot: 40,
+            discountStepsSnapshot: "[]",
+            discountedUnitPriceSnapshot: 100,
+            lineOmzetSnapshot: 100,
+            lineProfitSnapshot: 60,
+          },
+        },
+      },
+    });
 
     __resetBootstrapStateForTests();
     await ensureDatabaseReady();
 
     expect(await prisma.customer.count()).toBe(1); // untouched
-    expect(await prisma.transaction.count()).toBe(0);
+    expect(await prisma.transaction.count()).toBe(1); // only the real bon
   });
 
   it("is idempotent and never overwrites an existing user's password", async () => {

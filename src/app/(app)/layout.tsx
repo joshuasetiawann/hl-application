@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { ensureDatabaseReady } from "@/lib/bootstrap";
 import Sidebar from "@/components/Sidebar";
 import ToastProvider from "@/components/Toast";
 
@@ -12,6 +13,11 @@ export default async function AppLayout({
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  // Best-effort: opening any authenticated page self-provisions a fresh/empty
+  // database (schema + admin + demo data) so the dashboard is never blank.
+  // Memoized per lambda, so it's a no-op after the first call. Never throws here.
+  await ensureDatabaseReady().catch(() => {});
 
   return (
     <ToastProvider>
