@@ -104,11 +104,20 @@ async function seedAdminIfEmpty(client: PrismaClient): Promise<void> {
  */
 async function seedDemoIfEmpty(client: PrismaClient): Promise<void> {
   if (process.env.SEED_DEMO === "false") return;
-  const result = await seedDemoData(client);
-  if (result.seeded) {
-    console.log(
-      `[bootstrap] Demo data seeded: ${result.customers} customers, ` +
-        `${result.products} products, ${result.transactions} transactions`
+  // Demo data is non-critical: a failure here (e.g. a partial seed from an
+  // earlier interrupted run hitting a unique constraint) must NEVER block
+  // login or the health check. Best-effort, log, move on.
+  try {
+    const result = await seedDemoData(client);
+    if (result.seeded) {
+      console.log(
+        `[bootstrap] Demo data seeded: ${result.customers} customers, ` +
+          `${result.products} products, ${result.transactions} transactions`
+      );
+    }
+  } catch (err) {
+    console.warn(
+      `[bootstrap] Demo data seed skipped: ${err instanceof Error ? err.message : err}`
     );
   }
 }
